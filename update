@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Night City Game</title>
+  <style>
+    body { margin:0; overflow:hidden; background:#000; color:#fff; font-family:Arial,sans-serif; }
+    #gameCanvas { display:block; background:#111; }
+    #gameUI, #healthUI, #equipUI, #currentUI {
+      position:absolute; background:rgba(0,0,0,0.7);
+      padding:6px 10px; border-radius:4px; font-size:16px;
+    }
+    #gameUI { top:10px; left:10px }
+    #healthUI{ top:40px; left:10px }
+    #equipUI { top:10px; right:10px; text-align:right }
+    #currentUI {
+      top:70px; right:10px; display:flex;
+      align-items:center; gap:6px;
+    }
+    /* Force equipped image size */
+    #currentUI img {
+      width:32px !important;
+      height:32px !important;
+    }
+    #instructions {
+      position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.7); padding:6px 12px; border-radius:4px; font-size:14px;
+    }
+    #shopUI, #statsUI {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(20,20,20,0.95); border:2px solid #00aaff; border-radius:6px;
+      padding:16px; display:none; z-index:10; width:300px;
+    }
+    #shopUI h2, #statsUI h2 { margin:0 0 12px; text-align:center }
+    #weaponList, #inventoryList { list-style:none; padding:0; max-height:120px; overflow-y:auto; margin-bottom:12px; }
+    .weapon-item, .inv-item { display:flex; align-items:center; margin-bottom:8px }
+    .weapon-item.disabled { opacity:0.4; cursor:not-allowed }
+    .weapon-item img, .inv-item img { width:48px; height:48px; margin-right:12px }
+    button { background:#00aaff; border:none; padding:4px 8px; margin-left:6px; cursor:pointer }
+    #bossUI {
+      position:absolute; top:10px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.7); padding:6px 10px; border-radius:4px; font-size:16px;
+      display:flex; align-items:center; gap:8px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="gameUI">Money: $<span id="moneyCounter">0</span></div>
+  <div id="healthUI">Health: <span id="healthCounter">100</span></div>
+  <div id="equipUI">
+    Primary: <span id="primarySlot">None</span><br>
+    Secondary: <span id="secondarySlot">None</span>
+  </div>
+  <div id="currentUI">
+    <strong>Equipped:</strong>
+    <img id="currentImg" width="32" height="32" />
+    <span id="currentName">None</span>
+  </div>
+  <div id="instructions">
+    WASD/Arrows Move • Shift Sprint • M Earn $ • Click Attack • O Shop • T Stats • 1/2 Equip
+  </div>
+
+  <!-- Shop UI -->
+  <div id="shopUI">
+    <h2>🔫 Weapon Shop</h2>
+    <ul id="weaponList"></ul>
+    <h3>Inventory</h3>
+    <ul id="inventoryList"></ul>
+    <button id="closeShop">Close Shop</button>
+  </div>
+
+  <!-- Stats UI -->
+  <div id="statsUI">
+    <h2>📊 Stats</h2>
+    <p>Kills: <span id="statKills">0</span></p>
+    <p>Damage: <span id="statDamage">0</span></p>
+    <button id="closeStats">Close Stats</button>
+  </div>
+
+  <!-- Boss Health -->
+  <div id="bossUI">👹 Boss Health: <span id="bossHealth">100%</span></div>
+
+  <script type="module">
+  // — Helpers for placeholder & loading —
+  function createPlaceholder(c='#888',w=48,h=48){
+    const cvs=document.createElement('canvas'); cvs.width=w; cvs.height=h;
+    const ctx=cvs.getContext('2d'); ctx.fillStyle=c; ctx.fillRect(0,0,w,h);
+    return cvs;
+  }
+  function loadImage(src,fallbackColor,w,h){
+    return new Promise(res=>{
+      const img=new Image();
+      img.onload=()=>res(img);
+      img.onerror=()=>{
+        const p=createPlaceholder(fallbackColor,w,h);
+        const img2=new Image();
+        img2.onload=()=>res(img2);
+        img2.src=p.toDataURL();
+      };
+      img.src=src;
+    });
+  }
+
+  // — Weapons & inventory —
+  const weapons=[
+    {id:'atom',  name:'AtomGun',  price:100,  dps:10,  type:'ranged', level:1, owned:true,  sprite:null},
+    {id:'laser', name:'LazerGun', price:1000, dps:100, type:'ranged', level:1, owned:false, sprite:null},
+    {id:'katana',name:'Katana',   price:500,  dps:50,  type:'melee',  level:1, owned:false, sprite:null}
+  ];
+  weapons.forEach(w=>{
+    w.getPrice=()=>Math.floor(w.price * Math.pow(1.5,w.level-1));
+    w.getDPS  =()=>w.dps * (1 + (w.level-1)*0.2);
+    w.getUp   =()=>Math.floor(w.price * Math.pow(2,w.level-1));
+  });
+
+  let primary=weapons[0],
+      secondary=weapons[2],
+      current=primary;
+
+  // — Globals & state —
+  const bullets=[];
+  let money=0, stats={kills:0,damage:0}, bossActive=false, bossDefeated=false, time=0;
+  const keys={}, mouse={x:0,y:0}, cam={x:0,y:0};
+
+  window.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
+  window.addEventListener('keyup',  e=>keys[e.key.toLowerCase()]=false);
+
+  // — Canvas & UI refs —
+  const canvas=document.getElementById('gameCanvas'), ctx=canvas.getContext('2d');
+  const moneyEl=document.getElementById('moneyCounter'),
+        healthEl=document.getElementById('healthCounter'),
+        primEl=document.getElementById('primarySlot'),
+        secEl=document.getElementById('secondarySlot'),
+        curImg=document.getElementById('currentImg'),
+        curName=document.getElementById('currentName'),
+        shopEl=document.getElementById('shopUI'),
+        wList=document.getElementById('weaponList'),
+        invList=document.getElementById('inventoryList'),
+        closeShopBtn=document.getElementById('closeShop'),
+        statsEl=document.getElementById('statsUI'),
+        kEl=document.getElementById('statKills'),
+        dEl=document.getElementById('statDamage'),
+        closeStatsBtn=document.getElementById('closeStats'),
+        bossEl=document.getElementById('bossHealth');
+
+  canvas.addEventListener('mousemove',e=>{
+    const r=canvas.getBoundingClientRect();
+    mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top;
+  });
+  canvas.addEventListener('click',()=>{
+    if(current.type==='ranged') shoot();
+    else slash();
+  });
+
+  // — Player & Boss objects —
+  const player={x:100,y:100,w:50,h:80,speed:3,health:100,maxHealth:100,sprite:null},
+        boss  ={x:0,y:0,w:150,h:150,speed:2,health:500,maxHealth:500,sprite:null};
+
+  function resize(){
+    canvas.width=innerWidth; canvas.height=innerHeight;
+    cam.x=player.x-canvas.width/2;
+    cam.y=player.y-canvas.height/2;
+  }
+  window.addEventListener('resize',resize);
+
+  // — Load real sprites —
+  async function initAssets(){
+    [player.sprite,boss.sprite] = await Promise.all([
+      loadImage('player.png','#0f0',50,80),
+      loadImage('boss.png','#a00',150,150)
+    ]);
+    // your two PNGs in same folder:
+    weapons[1].sprite = await loadImage('cbokj4adaal41.png','#0af',48,48);
+    weapons[2].sprite = await loadImage('433-4332234_katana-katana-pixel-art.png','#f80',64,32);
+    // Atom placeholder
+    weapons[0].sprite = createPlaceholder('#888',48,48);
+  }
+
+  // — Shop logic —
+  function openShop(){
+    renderShop(); shopEl.style.display='block';
+  }
+  function renderShop(){
+    wList.innerHTML=''; invList.innerHTML='';
+    weapons.forEach(w=>{
+      const cost = w.owned? w.getUp(): w.getPrice();
+      const ok   = money >= cost;
+      const li   = document.createElement('li');
+      li.className='weapon-item' + (ok?'':' disabled');
+      li.innerHTML=`
+        <img src="${w.sprite.src}">
+        <div>
+          <strong>${w.name}${w.owned?' Lv.'+w.level:''}</strong><br>
+          ${w.owned?`Upg $${cost}`:`Buy $${cost}`} • DPS:${w.owned? w.getDPS().toFixed(1):w.dps}
+        </div>`;
+      const btn = document.createElement('button');
+      btn.textContent = w.owned? 'Upgrade':'Buy';
+      btn.onclick = ()=>{
+        if(!ok) return;
+        money-=cost; moneyEl.textContent=money;
+        if(w.owned) w.level++; else w.owned=true;
+        current=w;
+        renderShop(); renderInv(); updateUI();
+      };
+      li.appendChild(btn);
+      wList.appendChild(li);
+    });
+    renderInv();
+  }
+  function renderInv(){
+    invList.innerHTML='';
+    weapons.filter(w=>w.owned).forEach(w=>{
+      const li=document.createElement('li');
+      li.className='inv-item';
+      li.innerHTML=`<img src="${w.sprite.src}">${w.name}`;
+      if(w.type==='ranged'){
+        const b=document.createElement('button');
+        b.textContent='1'; b.onclick=()=>{ primary=w; current=w; updateUI(); };
+        li.appendChild(b);
+      }
+      if(w.type==='melee'){
+        const b=document.createElement('button');
+        b.textContent='2'; b.onclick=()=>{ secondary=w; updateUI(); };
+        li.appendChild(b);
+      }
+      invList.appendChild(li);
+    });
+  }
+  function initShop(){
+    window.addEventListener('keydown',e=>{ if(e.key.toLowerCase()==='o') openShop(); });
+    closeShopBtn.onclick = ()=>shopEl.style.display='none';
+  }
+
+  // — Stats logic —
+  function initStats(){
+    window.addEventListener('keydown',e=>{
+      if(e.key.toLowerCase()==='t'){
+        kEl.textContent=stats.kills; dEl.textContent=stats.damage;
+        statsEl.style.display='block';
+      }
+    });
+    closeStatsBtn.onclick=()=>statsEl.style.display='none';
+  }
+  function recordKill(d){ stats.kills++; stats.damage+=d; }
+
+  // — Equip UI update —
+  function updateUI(){
+    primEl.innerHTML = primary
+      ? `<img src="${primary.sprite.src}" width="32">${primary.name}`
+      : 'None';
+    secEl.innerHTML = secondary
+      ? `<img src="${secondary.sprite.src}" width="32">${secondary.name}`
+      : 'None';
+    currentImg.src     = current.sprite.src;
+    currentName.textContent = current.name;
+  }
+
+  // — Combat: shoot/slash —
+  function shoot(){
+    const ox=player.x+player.w/2, oy=player.y+player.h/2;
+    const mx=cam.x+mouse.x, my=cam.y+mouse.y;
+    const dx=mx-ox, dy=my-oy, d=Math.hypot(dx,dy)||1;
+    const speed = current.id==='laser'?18:10;
+    bullets.push({ x:ox,y:oy,vx:dx/d*speed,vy:dy/d*speed,r:4,color:'#0ff' });
+  }
+  function slash(){
+    const px=player.x+player.w/2, py=player.y+player.h/2;
+    const bx=boss.x+boss.w/2, by=boss.y+boss.h/2;
+    if(Math.hypot(px-bx,py-by)<80){
+      boss.health-=current.getDPS();
+      if(boss.health<=0){ boss.health=0; bossDefeated=true; recordKill(current.getDPS()); }
+    }
+  }
+
+  // — Boss & collisions —
+  function updateBoss(){
+    if(!bossActive && money>=500) bossActive=true;
+    if(!bossActive||bossDefeated) return;
+    const px=player.x+player.w/2, py=player.y+player.h/2;
+    // chase X/Y
+    boss.x += (px>boss.x)? boss.speed : -boss.speed;
+    boss.y += (py>boss.y)? boss.speed : -boss.speed;
+    // bullet collisions
+    for(let i=bullets.length-1;i>=0;i--){
+      const b=bullets[i];
+      if(b.x>boss.x&&b.x<boss.x+boss.w&&b.y>boss.y&&b.y<boss.y+boss.h){
+        boss.health-=current.getDPS();
+        bullets.splice(i,1);
+        if(boss.health<=0){ boss.health=0; bossDefeated=true; recordKill(current.getDPS()); }
+      }
+    }
+    // damage player
+    const dx=(boss.x+boss.w/2)-px, dy=(boss.y+boss.h/2)-py;
+    if(Math.hypot(dx,dy)<(boss.w+player.w)/4){
+      player.health-=0.3;
+      if(player.health<0) player.health=0;
+    }
+    bossEl.textContent = Math.floor((boss.health/boss.maxHealth)*100)+'%';
+  }
+
+  // — Main loop —
+  async function main(){
+    resize(); await initAssets();
+    initShop(); initStats(); updateUI();
+
+    window.addEventListener('keydown',e=>{
+      if(e.key==='1'&&primary){ current=primary;updateUI(); }
+      if(e.key==='2'&&secondary){ current=secondary;updateUI(); }
+    });
+
+    let last=performance.now();
+    function loop(ts){
+      const delta=ts-last; last=ts; time+=delta;
+      // movement
+      const mv=keys['shift']?player.speed*2:player.speed;
+      if(keys['a']||keys['arrowleft']) player.x-=mv;
+      if(keys['d']||keys['arrowright'])player.x+=mv;
+      if(keys['w']||keys['arrowup'])  player.y-=mv;
+      if(keys['s']||keys['arrowdown'])player.y+=mv;
+      cam.x=player.x-canvas.width/2; cam.y=player.y-canvas.height/2;
+
+      if(keys['m']){ money++; moneyEl.textContent=money; }
+
+      // bullets
+      for(let i=bullets.length-1;i>=0;i--){
+        const b=bullets[i]; b.x+=b.vx; b.y+=b.vy;
+        if(b.x<cam.x||b.x>cam.x+canvas.width||b.y<cam.y||b.y>cam.y+canvas.height)
+          bullets.splice(i,1);
+      }
+
+      healthEl.textContent = Math.floor(player.health);
+      updateBoss();
+
+      // draw
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      const px=canvas.width/2-player.w/2, py=canvas.height/2-player.h/2;
+      const bob=Math.sin(time*0.005)*5;
+      ctx.drawImage(player.sprite,px,py+bob,player.w,player.h);
+      // draw held weapon
+      const wx = current.type==='ranged'? 30 : -20;
+      ctx.drawImage(current.sprite,px+wx,py+20,48,48);
+
+      // aiming line
+      ctx.strokeStyle='red'; ctx.beginPath();
+      ctx.moveTo(px+player.w/2,py+player.h/2+bob);
+      ctx.lineTo(mouse.x,mouse.y); ctx.stroke();
+      ctx.strokeStyle='white'; ctx.strokeRect(mouse.x-5,mouse.y-5,10,10);
+
+      bullets.forEach(b=>{
+        ctx.fillStyle=b.color;
+        ctx.beginPath(); ctx.arc(b.x-cam.x,b.y-cam.y,b.r,0,2*Math.PI); ctx.fill();
+      });
+
+      if(bossActive&&!bossDefeated){
+        const bbob=Math.sin(time*0.003)*8;
+        ctx.drawImage(boss.sprite,boss.x-cam.x,boss.y-cam.y+bbob,boss.w,boss.h);
+      }
+
+      if(player.health>0) requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('load',main);
+  </script>
+</body>
+</html>
