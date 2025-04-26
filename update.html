@@ -148,8 +148,8 @@
   // — Weapons & inventory —
   const weapons=[
     {id:'atom',  name:'AtomGun',  price:100,  dps:10,  type:'ranged', level:1, owned:true,  sprite:null},
-    {id:'laser', name:'LazerGun', price:1000, dps:100, type:'ranged', level:1, owned:false, sprite:null},
-    {id:'katana',name:'Katana',   price:500,  dps:50,  type:'melee',  level:1, owned:false, sprite:null}
+    {id:'laser', name:'LazerGun', price:500, dps:100, type:'ranged', level:1, owned:false, sprite:null},
+    
   ];
   weapons.forEach(w=>{
     w.getPrice=()=>Math.floor(w.price * Math.pow(1.5,w.level-1));
@@ -163,7 +163,7 @@
 
   // — Globals & state —
   const bullets=[];
-  let stats={kills:0,damage:0}, bossActive=false, bossDefeated=false, time=0;
+  let stats={kills:0,damage:0}, bossActive=true, bossDefeated=false, time=0;
   const keys={}, mouse={x:0,y:0}, cam={x:0,y:0};
 
   window.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
@@ -194,12 +194,12 @@
   });
   canvas.addEventListener('click',()=>{
     if(current.type==='ranged') shoot();
-    else slash();d
+    else slash();
   });
 
   // — Player & Boss objects —
   const player={x:100,y:100,w:150,h:240,speed:3,health:100,maxHealth:100,sprite:null},
-        boss  ={x:0,y:0,w:150,h:150,speed:2,health:500,maxHealth:500,sprite:null};
+        boss  ={x:0,y:0,w:300,h:300,speed:3,health:1500,maxHealth:1500,sprite:null};
   const playerSprites = {
     standingRight: null,
     walkingRight: null,
@@ -227,7 +227,7 @@
     ]);
     // your two PNGs in same folder:
     weapons[1].sprite = await loadImage('cbokj4adaal41.png','#0af',48,48);
-    weapons[2].sprite = await loadImage('433-4332234_katana-katana-pixel-art.png','#f80',64,32);
+    // your placeholder PNG in same folder:
 
     weapons[0].sprite = await loadImage('atomgun.png', '#888', 48, 48);
   }
@@ -318,8 +318,8 @@
     const bob = Math.sin(time*0.005)*5;
     
     // Use same origin as aiming line
-    const ox = player.x + player.w/2;
-    const oy = player.y + player.h/2 + bob;  // Added bob effect to match visual line
+    const ox = player.x + player.w/2;-300;
+    const oy = player.y + player.h/2 + bob-30;  // Added bob effect to match visual line
     
     const mx = cam.x + mouse.x;
     const my = cam.y + mouse.y;
@@ -329,14 +329,14 @@
     const speed = current.id === 'laser' ? 18 : 10;
     
     bullets.push({ 
-        x: ox,
-        y: oy,
+        x: ox-70,
+        y: oy-100,
         vx: dx/d * speed,
         vy: dy/d * speed,
         r: 4,
         color: '#0ff' 
     });
-  }
+    }
   function slash(){
     playerSprites.attackTime = 500; // Animation lasts 500ms
     const px = player.x+player.w/2;
@@ -355,26 +355,48 @@
 
   // — Boss & collisions —
   function updateBoss(){
-    if(!bossActive && money>=500) bossActive=true;
     if(!bossActive||bossDefeated) return;
-    const px=player.x+player.w/2, py=player.y+player.h/2;
-    // chase X/Y
-    boss.x += (px>boss.x)? boss.speed : -boss.speed;
-    boss.y += (py>boss.y)? boss.speed : -boss.speed;
+    
+    // Get player and boss center positions
+    const px = player.x + player.w/2;
+    const py = player.y + player.h/2;
+    const bx = boss.x + boss.w/2;
+    const by = boss.y + boss.h/2;
+
+    // Calculate direction vector
+    let dx = px - bx;  // Changed to 'let' instead of 'const'
+    let dy = py - by;  // Changed to 'let' instead of 'const'
+    
+    // Move boss towards player
+    boss.x += Math.sign(dx) * boss.speed;
+    boss.y += Math.sign(dy) * boss.speed;
+
     // bullet collisions
-    for(let i=bullets.length-1;i>=0;i--){
-      const b=bullets[i];
-      if(b.x>boss.x&&b.x<boss.x+boss.w&&b.y>boss.y&&b.y<boss.y+boss.h){
-        boss.health-=current.getDPS();
-        bullets.splice(i,1);
-        if(boss.health<=0){ boss.health=0; bossDefeated=true; recordKill(current.getDPS()); }
-      }
+    const hitboxX = boss.x + boss.w/4;  // Shrink hitbox to 1/2 width
+    const hitboxY = boss.y + boss.h/4;  // Shrink hitbox to 1/2 height
+    const hitboxW = boss.w/2;  // Half width
+    const hitboxH = boss.h/2;  // Half height
+
+    for(let i=bullets.length-1; i>=0; i--){
+        const b = bullets[i];
+        if(b.x > hitboxX && b.x < hitboxX + hitboxW && 
+           b.y > hitboxY && b.y < hitboxY + hitboxH){
+            boss.health -= current.getDPS();
+            bullets.splice(i,1);
+            if(boss.health <= 0){ 
+                boss.health = 0; 
+                bossDefeated = true; 
+                recordKill(current.getDPS()); 
+            }
+        }
     }
-    // damage player
-    const dx=(boss.x+boss.w/2)-px, dy=(boss.y+boss.h/2)-py;
+
+    // damage player - recalculate dx/dy for player damage check
+    dx = (boss.x+boss.w/2) - px;
+    dy = (boss.y+boss.h/2) - py;
     if(Math.hypot(dx,dy)<(boss.w+player.w)/4){
-      player.health-=0.3;
-      if(player.health<0) player.health=0;
+        player.health-=0.3;
+        if(player.health<0) player.health=0;
     }
     bossEl.textContent = Math.floor((boss.health/boss.maxHealth)*100)+'%';
   }
@@ -460,9 +482,19 @@
       updateBoss();
 
       // Draw weapon
-      const wx = current.type === 'ranged' ? 30 : -20;
-      if (current.sprite) {
-          ctx.drawImage(current.sprite, px+wx, py+20, 48, 48);
+      if (current.type === 'ranged' && current.sprite) {
+          ctx.save();
+          const wx = px -25+ (playerSprites.facingRight ? player.w-50 : player.w-50); // Adjust horizontal position based on direction
+          const wy = py + 80; // Lower the gun position (increase this number to lower it more)
+          
+          // Flip weapon if facing left
+          if (!playerSprites.facingRight) {
+              ctx.scale(-1, 1);
+              ctx.translate(-canvas.width, 0);
+          }
+          
+          ctx.drawImage(current.sprite, wx, wy, 48, 48);
+          ctx.restore();
       }
 
       // Draw aiming line

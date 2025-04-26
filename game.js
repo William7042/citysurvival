@@ -1,22 +1,3 @@
-//NPC image loader 
-const npcImages = {
-    mechanic: new Image(),
-    hacker: new Image(),
-    vendor: new Image(),
-    scientist: new Image(),
-    trader: new Image(),
-    playerLeft: new Image(),
-    playerRight: new Image()
-};
-
-//Load NPC images
-npcImages.mechanic.src = 'npc-mechanic.png';
-npcImages.hacker.src = 'npc-hacker.png';
-npcImages.vendor.src = 'npc-vendor.png';
-npcImages.scientist.src = 'npc-scientist.png';
-npcImages.trader.src = 'npc-trader.png';
-npcImages.playerLeft.src = 'player-left.png';
-npcImages.playerRight.src = 'player-right.png';
 
 //Game timer
 let gameTimer = {
@@ -37,7 +18,7 @@ let gameTimer = {
                 this.timeRemaining = 0;
                 this.gameOver = true;
                 // Store the money before redirecting
-                localStorage.setItem('money', money);
+                localStorage.setItem('playerMoney', money);
                 console.log("Game time is up!");
                 window.location.href = 'update.html';
             }
@@ -80,6 +61,16 @@ const moneyCounter = document.getElementById('moneyCounter');
 //set canvas to window size
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+//after the npcImages declarations, add:
+const playerSprites = {
+    standing: new Image(),
+    running: new Image(),
+    facing:'right'
+};
+
+//load player sprites
+playerSprites.standing.src = 'stand.gif';
+playerSprites.running.src = 'running.gif';
 
 //game state variables
 let money = 0;
@@ -107,9 +98,9 @@ const worldBounds = {
 //player object
 const player = {
     x: canvas.width / 2 - 25,
-    y: canvas.height * 0.75 - 10,
-    width: 50,
-    height: 80,
+    y: canvas.height * 0.75-75,
+    width: 125,
+    height: 200,
     speed: 5,
     facingRight: true,
     walkCycle: 0,
@@ -119,7 +110,7 @@ const player = {
     jumpStrength: -15,
     gravity: 0.8,
     onGround: true,
-    floorY: canvas.height * 0.75 - 10
+    floorY: canvas.height * 0.75 - 75
 };
 
 //load city 
@@ -1966,46 +1957,35 @@ function draw() {
     }
     
     if (!minigameActive) {
-        //draw player with glow
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(0, 194, 255, 0.6)';
+        // Draw player sprite
+        ctx.save();
         
-        //player body
-        ctx.fillStyle = player.facingRight ? '#3366ff' : '#4488ff';
-        ctx.fillRect(player.x, player.y, player.width, player.height);
-        
-        //player head
-        ctx.fillStyle = '#ffcc99';
-        ctx.beginPath();
-        ctx.arc(player.x + player.width/2, player.y + 15, 10, 0, Math.PI * 2);
-        ctx.fill();
-        
-        //reset shadow
-        ctx.shadowBlur = 0;
-        
-        //player legs with animation
-        ctx.fillStyle = '#2244cc';
-        
-        if (player.onGround) {
-            const legOffset = Math.sin(player.walkCycle) * 5;
-            ctx.fillRect(
-                player.x + 10, 
-                player.y + player.height - 30 + (player.facingRight ? legOffset : -legOffset), 
-                10, 
-                30
-            );
-            ctx.fillRect(
-                player.x + player.width - 20, 
-                player.y + player.height - 30 + (player.facingRight ? -legOffset : legOffset), 
-                10, 
-                30
-            );
-        } else {
-            ctx.fillRect(player.x + 10, player.y + player.height - 25, 10, 25);
-            ctx.fillRect(player.x + player.width - 20, player.y + player.height - 25, 10, 25);
+        // Handle sprite flipping
+        if (!player.facingRight) {
+            ctx.scale(-1, 1);
+            ctx.translate(-2 * player.x - player.width, 0);
         }
         
-        //jump effect
+        // Choose which sprite to draw
+        const currentSprite = (keys['ArrowLeft'] || keys['ArrowRight'] || 
+                             keys['a'] || keys['d']) ? 
+                             playerSprites.running : 
+                             playerSprites.standing;
+        
+        // Draw the sprite
+        if (currentSprite) {
+            ctx.drawImage(
+                currentSprite,
+                player.x,
+                player.y,
+                player.width,
+                player.height
+            );
+        }
+        
+        ctx.restore();
+        
+        // Jump effect particles (keep this if you want)
         if (!player.onGround) {
             ctx.fillStyle = 'rgba(0, 194, 255, 0.6)';
             for (let i = 0; i < 5; i++) {
@@ -2023,7 +2003,7 @@ function draw() {
                 ctx.fill();
             }
         }
-    }
+    }   
     
     //draw dialog
     if (dialogOpen && currentNPC && !minigameActive) {
