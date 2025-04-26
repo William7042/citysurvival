@@ -1,28 +1,26 @@
-// NPC image loader 
+//NPC image loader 
 const npcImages = {
     mechanic: new Image(),
     hacker: new Image(),
     vendor: new Image(),
     scientist: new Image(),
     trader: new Image(),
-    engineer: new Image(),
     playerLeft: new Image(),
     playerRight: new Image()
 };
 
-// Load NPC images
+//Load NPC images
 npcImages.mechanic.src = 'npc-mechanic.png';
 npcImages.hacker.src = 'npc-hacker.png';
 npcImages.vendor.src = 'npc-vendor.png';
 npcImages.scientist.src = 'npc-scientist.png';
 npcImages.trader.src = 'npc-trader.png';
-npcImages.engineer.src = 'npc-engineer.png';
 npcImages.playerLeft.src = 'player-left.png';
 npcImages.playerRight.src = 'player-right.png';
 
-// Game timer
+//Game timer
 let gameTimer = {
-    totalTime: 120, // 2 minutes in seconds
+    totalTime: 120, //2 minutes in seconds
     timeRemaining: 120,
     lastUpdateTime: Date.now(),
     gameOver: false,
@@ -38,30 +36,31 @@ let gameTimer = {
             if (this.timeRemaining <= 0) {
                 this.timeRemaining = 0;
                 this.gameOver = true;
-                // Game over handling logic goes here
+                // Store the money before redirecting
+                localStorage.setItem('money', money);
                 console.log("Game time is up!");
+                window.location.href = 'update.html';
             }
         }
     },
-    
     draw: function() {
-        // Draw timer background
+        //Draw timer background
         ctx.fillStyle = 'rgba(10, 10, 24, 0.8)';
         ctx.fillRect(canvas.width / 2 - 100, 10, 200, 40);
         
-        // Draw timer border
+        //Draw timer border
         ctx.strokeStyle = 'rgba(0, 194, 255, 0.8)';
         ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width / 2 - 100, 10, 200, 40);
         
-        // Calculate minutes and seconds
+        //calculate minutes and seconds
         const minutes = Math.floor(this.timeRemaining / 60);
         const seconds = Math.floor(this.timeRemaining % 60);
         
-        // Format time as MM:SS
+        //Format time as MM:SS
         const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
         
-        // Draw timer text with pulsing effect for last 30 seconds
+        //Draw timer text with pulsing effect for last 30 seconds
         if (this.timeRemaining <= 30) {
             const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 200);
             ctx.fillStyle = `rgba(255, 51, 102, ${pulse})`;
@@ -73,17 +72,17 @@ let gameTimer = {
         ctx.textAlign = 'center';
         ctx.fillText(timeString, canvas.width / 2, 37);
     }
-};// game setup
+};//game setup
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const moneyCounter = document.getElementById('moneyCounter');
 
-// set canvas to window size
+//set canvas to window size
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-// game state variables
-let playerMoney = 0;
+//game state variables
+let money = 0;
 let dialogOpen = false;
 let currentNPC = null;
 let currentDialogText = "";
@@ -94,18 +93,18 @@ let currentMinigame = null;
 let mouseX = 0;
 let mouseY = 0;
 
-// camera position
+//camera position
 const camera = {
     x: 0
 };
 
-// world bounds
+//world bounds
 const worldBounds = {
     min: -10000,
     max: 10000
 };
 
-// player object
+//player object
 const player = {
     x: canvas.width / 2 - 25,
     y: canvas.height * 0.75 - 10,
@@ -123,7 +122,7 @@ const player = {
     floorY: canvas.height * 0.75 - 10
 };
 
-// load city layer images
+//load city 
 const cityLayers = [];
 for (let i = 1; i <= 11; i++) {
     const img = new Image();
@@ -136,9 +135,9 @@ for (let i = 1; i <= 11; i++) {
     });
 }
 
-// mini-games
+//MINIGAMESSS_________________________________________
 
-// mechanic: wire repair game
+//mechanic: among us wires
 const wireRepairGame = {
     wires: [],
     targets: [],
@@ -236,16 +235,16 @@ const wireRepairGame = {
     },
     
     draw: function() {
-        // background panel
+        //background panel
         ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
         ctx.fillRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // border
+        //border
         ctx.strokeStyle = 'rgba(0, 194, 255, 0.8)';
         ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // inner glow
+        //inner glow
         const gradient = ctx.createLinearGradient(
             canvas.width * 0.2, canvas.height * 0.2, 
             canvas.width * 0.8, canvas.height * 0.8
@@ -256,21 +255,21 @@ const wireRepairGame = {
         ctx.fillStyle = gradient;
         ctx.fillRect(canvas.width * 0.205, canvas.height * 0.205, canvas.width * 0.59, canvas.height * 0.59);
         
-        // title
+        //title
         ctx.fillStyle = '#00c2ff';
         ctx.font = 'bold 28px Orbitron';
         ctx.textAlign = 'center';
         ctx.fillText("Repair the Hover-Car Wiring System", canvas.width * 0.5, canvas.height * 0.25);
         
-        // instructions
+        //instructions
         ctx.fillStyle = '#e0e0ff';
         ctx.font = '16px "Exo 2"';
-        ctx.fillText("Connect the matching colored wires by clicking them in sequence", canvas.width * 0.5, canvas.height * 0.28);
+        ctx.fillText("Connect the matching colored wires", canvas.width * 0.5, canvas.height * 0.28);
         
-        // connections
+        //connections
         ctx.lineWidth = 5;
         for (const conn of this.connections) {
-            // glow effect
+            //glow effect
             ctx.shadowBlur = 10;
             ctx.shadowColor = conn.color;
             
@@ -280,13 +279,13 @@ const wireRepairGame = {
             ctx.lineTo(conn.targetX, conn.targetY);
             ctx.stroke();
             
-            // reset shadow
+            //reset shadow
             ctx.shadowBlur = 0;
         }
-        
-        // wires
+
+        //wires
         for (const wire of this.wires) {
-            // glow effect
+            //glow effect
             ctx.shadowBlur = wire === this.selectedWire ? 15 : 5;
             ctx.shadowColor = wire.color;
             
@@ -299,34 +298,34 @@ const wireRepairGame = {
                 ctx.strokeRect(wire.x - 22, wire.y - 7, 44, 14);
             }
             
-            // reset shadow
+            //reset shadow
             ctx.shadowBlur = 0;
         }
         
-        // targets
+        //targets
         for (const target of this.targets) {
-            // glow effect
+            //glow effect
             ctx.shadowBlur = 5;
             ctx.shadowColor = target.color;
             
             ctx.fillStyle = target.color;
             ctx.fillRect(target.x - 20, target.y - 5, 40, 10);
             
-            // reset shadow
+            //reset shadow
             ctx.shadowBlur = 0;
         }
         
         if (this.completed) {
-            // completion panel
+            //completion panel
             ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
             ctx.fillRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
             
-            // panel border
+            //panel border
             ctx.strokeStyle = this.success ? 'rgba(0, 255, 170, 0.8)' : 'rgba(255, 51, 102, 0.8)';
             ctx.lineWidth = 2;
             ctx.strokeRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
             
-            // completion message
+            //completion message
             ctx.fillStyle = this.success ? '#00ffaa' : '#ff3366';
             ctx.font = 'bold 24px Orbitron';
             ctx.fillText(
@@ -335,7 +334,7 @@ const wireRepairGame = {
                 canvas.height * 0.5
             );
             
-            // continue button
+            //continue button
             ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
             ctx.fillRect(canvas.width * 0.4, canvas.height * 0.75, canvas.width * 0.2, 40);
             
@@ -350,7 +349,7 @@ const wireRepairGame = {
     }
 };
 
-// hacker: code breaking game
+//hacker: code breaking game
 const codeBreakingGame = {
     code: [],
     guess: [],
@@ -488,16 +487,16 @@ const codeBreakingGame = {
     },
     
     draw: function() {
-        // background panel
+        //background panel
         ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
         ctx.fillRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // border
+        //border
         ctx.strokeStyle = 'rgba(0, 255, 170, 0.8)';
         ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // inner glow
+        //inner glow
         const gradient = ctx.createLinearGradient(
             canvas.width * 0.2, canvas.height * 0.2, 
             canvas.width * 0.8, canvas.height * 0.8
@@ -508,45 +507,45 @@ const codeBreakingGame = {
         ctx.fillStyle = gradient;
         ctx.fillRect(canvas.width * 0.205, canvas.height * 0.205, canvas.width * 0.59, canvas.height * 0.59);
         
-        // title
+        //title
         ctx.fillStyle = '#00ffaa';
         ctx.font = 'bold 28px Orbitron';
         ctx.textAlign = 'center';
         ctx.fillText("Hack the Mainframe Security System", canvas.width * 0.5, canvas.height * 0.25);
         
-        // instructions
+        //instructions
         ctx.fillStyle = '#e0e0ff';
-        ctx.font = '16px "Exo 2"';
+        ctx.font = 'bold 14px Orbitron';
         ctx.fillText("Guess the security code. Green dots = correct position, Yellow dots = wrong position", canvas.width * 0.5, canvas.height * 0.28);
         
-        // previous guesses
+        //previous guesses
         for (let i = 0; i < this.attempts; i++) {
             const y = canvas.height * 0.32 + (i * 30);
             
-            // draw guess cells
+            //draw guess cells
             for (let j = 0; j < this.codeLength; j++) {
                 const x = canvas.width * 0.3 + (j * 40);
                 
-                // glow effect
+                //glow effect
                 ctx.shadowBlur = 5;
                 ctx.shadowColor = this.colors[this.feedback[i].guess[j]];
                 
                 ctx.fillStyle = this.colors[this.feedback[i].guess[j]];
                 ctx.fillRect(x, y, 30, 20);
                 
-                // reset shadow
+                //reset shadow
                 ctx.shadowBlur = 0;
             }
             
-            // draw feedback indicators
+            //draw feedback indicators
             for (let j = 0; j < this.feedback[i].correct; j++) {
-                // green dots for correct position
+                //green dots for correct position
                 ctx.fillStyle = '#00ffaa';
                 ctx.beginPath();
                 ctx.arc(canvas.width * 0.6 + (j * 15), y + 10, 5, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // glow effect
+                //glow effect
                 ctx.shadowBlur = 5;
                 ctx.shadowColor = '#00ffaa';
                 ctx.strokeStyle = '#00ffaa';
@@ -556,13 +555,13 @@ const codeBreakingGame = {
             }
             
             for (let j = 0; j < this.feedback[i].wrongPosition; j++) {
-                // yellow dots for wrong position
+                //yellow dots for wrong position
                 ctx.fillStyle = '#ffaa00';
                 ctx.beginPath();
                 ctx.arc(canvas.width * 0.6 + ((this.feedback[i].correct + j) * 15), y + 10, 5, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // glow effect
+                //glow effect
                 ctx.shadowBlur = 5;
                 ctx.shadowColor = '#ffaa00';
                 ctx.strokeStyle = '#ffaa00';
@@ -572,63 +571,63 @@ const codeBreakingGame = {
             }
         }
         
-        // draw current guess slots
+        //draw current guess slots
         const slotY = canvas.height * 0.6;
         const slotWidth = canvas.width * 0.4 / this.codeLength;
         
         for (let i = 0; i < this.codeLength; i++) {
             const slotX = canvas.width * 0.3 + (i * slotWidth);
             
-            // slot background
+            //slot background
             ctx.fillStyle = this.guess[i] === -1 ? 'rgba(255, 255, 255, 0.2)' : 'rgba(40, 40, 70, 0.6)';
             ctx.fillRect(slotX, slotY, slotWidth - 10, 30);
             
-            // slot border
+            //slot border
             ctx.strokeStyle = this.guess[i] === -1 ? '#ffffff' : 'rgba(0, 194, 255, 0.5)';
             ctx.lineWidth = this.guess[i] === -1 ? 2 : 1;
             ctx.strokeRect(slotX, slotY, slotWidth - 10, 30);
             
-            // selected color
+            //selected color
             if (this.guess[i] >= 0) {
-                // glow effect
+                //glow effect
                 ctx.shadowBlur = 5;
                 ctx.shadowColor = this.colors[this.guess[i]];
                 
                 ctx.fillStyle = this.colors[this.guess[i]];
                 ctx.fillRect(slotX + 5, slotY + 5, slotWidth - 20, 20);
                 
-                // reset shadow
+                //reset shadow
                 ctx.shadowBlur = 0;
             }
         }
         
-        // submit button
+        //submit button
         ctx.fillStyle = 'rgba(0, 255, 170, 0.3)';
-        ctx.fillRect(canvas.width * 0.7, canvas.height * 0.6, 100, 30);
+        ctx.fillRect(canvas.width * 0.7, canvas.height * 0.6, 140, 30);
         
         ctx.strokeStyle = 'rgba(0, 255, 170, 0.8)';
         ctx.lineWidth = 2;
-        ctx.strokeRect(canvas.width * 0.7, canvas.height * 0.6, 100, 30);
+        ctx.strokeRect(canvas.width * 0.7, canvas.height * 0.6, 140, 30);
         
         ctx.fillStyle = '#e0e0ff';
         ctx.font = '16px Orbitron';
         ctx.fillText("Submit", canvas.width * 0.75, canvas.height * 0.6 + 20);
         
-        // color selectors
+        //color selectors
         const selectorY = canvas.height * 0.7;
         const width = canvas.width * 0.6 / this.colors.length;
         
         for (let i = 0; i < this.colors.length; i++) {
             const selectorX = canvas.width * 0.2 + (i * width);
             
-            // glow effect
+            //glow effect
             ctx.shadowBlur = 5;
             ctx.shadowColor = this.colors[i];
             
             ctx.fillStyle = this.colors[i];
             ctx.fillRect(selectorX, selectorY, width, 30);
             
-            // reset shadow
+            //reset shadow
             ctx.shadowBlur = 0;
             
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
@@ -637,16 +636,16 @@ const codeBreakingGame = {
         }
         
         if (this.completed) {
-            // completion panel
+            //completion panel
             ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
             ctx.fillRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
             
-            // panel border
+            //panel border
             ctx.strokeStyle = this.success ? 'rgba(0, 255, 170, 0.8)' : 'rgba(255, 51, 102, 0.8)';
             ctx.lineWidth = 2;
             ctx.strokeRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
             
-            // completion message
+            //completion message
             ctx.fillStyle = this.success ? '#00ffaa' : '#ff3366';
             ctx.font = 'bold 24px Orbitron';
             ctx.fillText(
@@ -657,25 +656,25 @@ const codeBreakingGame = {
             
             if (!this.success) {
                 ctx.fillStyle = '#e0e0ff';
-                ctx.font = '18px "Exo 2"';
+                ctx.font = 'bold 22px Orbitron';
                 ctx.fillText("The correct code was:", canvas.width * 0.5, canvas.height * 0.55);
                 
                 for (let i = 0; i < this.codeLength; i++) {
                     const x = canvas.width * 0.4 + (i * 40);
                     
-                    // glow effect
+                    //glow effect
                     ctx.shadowBlur = 5;
                     ctx.shadowColor = this.colors[this.code[i]];
                     
                     ctx.fillStyle = this.colors[this.code[i]];
                     ctx.fillRect(x, canvas.height * 0.58, 30, 20);
                     
-                    // reset shadow
+                    //reset shadow
                     ctx.shadowBlur = 0;
                 }
             }
             
-            // continue button
+            //continue button
             ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
             ctx.fillRect(canvas.width * 0.4, canvas.height * 0.8, canvas.width * 0.2, 40);
             
@@ -690,7 +689,7 @@ const codeBreakingGame = {
     }
 };
 
-// vendor: package fitting game
+//vendor: package fitting game
 const packageFittingGame = {
     grid: [],
     packages: [],
@@ -706,7 +705,8 @@ const packageFittingGame = {
     timeLimit: 90,
     timeRemaining: 90,
     lastUpdateTime: 0,
-    
+    placedCount: 0,
+    totalPieces: 7,
     
     packageShapes: [
         { 
@@ -779,7 +779,7 @@ const packageFittingGame = {
         for (let y = 0; y < this.gridHeight; y++) {
             this.grid[y] = [];
             for (let x = 0; x < this.gridWidth; x++) {
-                this.grid[y][x] = 0; // 0 means empty
+                this.grid[y][x] = 0; //0 means empty
             }
         }
         
@@ -794,10 +794,10 @@ const packageFittingGame = {
             
 
             let x, y;
-            if (i < 4) { // First 4 packages on the left
+            if (i < 4) { 
                 x = gridX - width - 20 - (i % 2) * (width + 10);
                 y = gridY + (Math.floor(i / 2) * (height + 20));
-            } else { // Remaining packages on the right
+            } else { 
                 x = gridX + (this.gridWidth * this.cellSize) + 20 + ((i - 4) % 2) * (width + 10);
                 y = gridY + (Math.floor((i - 4) / 2) * (height + 20));
             }
@@ -819,19 +819,19 @@ const packageFittingGame = {
     },
     
     canPlacePackage: function(packageObj, gridX, gridY, offsetX, offsetY) {
-        // Check if a package can be placed at the given grid position
+        //check if a package can be placed at the given grid position
         for (let y = 0; y < packageObj.shape.length; y++) {
             for (let x = 0; x < packageObj.shape[0].length; x++) {
                 if (packageObj.shape[y][x]) {
                     const gx = Math.floor((offsetX - gridX) / this.cellSize) + x;
                     const gy = Math.floor((offsetY - gridY) / this.cellSize) + y;
                     
-                    // Check bounds
+                    //check bounds
                     if (gx < 0 || gx >= this.gridWidth || gy < 0 || gy >= this.gridHeight) {
                         return false;
                     }
                     
-                    // Check collision
+                    //check collision
                     if (this.grid[gy][gx]) {
                         return false;
                     }
@@ -842,12 +842,10 @@ const packageFittingGame = {
     },
     
     placePackage: function(packageObj, gridX, gridY, offsetX, offsetY) {
-        // Place a package on the grid
         const gx = Math.floor((offsetX - gridX) / this.cellSize);
         const gy = Math.floor((offsetY - gridY) / this.cellSize);
         
-        console.log("Placing package at grid position:", gx, gy);
-        
+        // Update grid with placed package
         for (let y = 0; y < packageObj.shape.length; y++) {
             for (let x = 0; x < packageObj.shape[0].length; x++) {
                 if (packageObj.shape[y][x]) {
@@ -856,29 +854,26 @@ const packageFittingGame = {
             }
         }
         
-        // Update package position to align with grid
+        // Update package position
         packageObj.x = gridX + gx * this.cellSize;
         packageObj.y = gridY + gy * this.cellSize;
         packageObj.placed = true;
         
-        // Update placed status
-        const index = this.packages.indexOf(packageObj);
-        if (index !== -1) {
-            this.packagePlaced[index] = true;
-            console.log("Package placed at index:", index, "- Total placed:", this.packagePlaced.filter(p => p).length);
-        }
+        // Increment counter and check completion
+        this.placedCount++;
+        console.log(`Placed piece ${this.placedCount} of ${this.totalPieces}`);
         
-        // Check if all packages are placed
-        if (this.packagePlaced.filter(placed => placed).length === this.packages.length) {
-            console.log("All packages placed!");
+        // If all pieces placed, complete game immediately
+        if (this.placedCount >= this.totalPieces) {
             this.completed = true;
             this.success = true;
-        } else {
-            // Count placed packages
-            const placedCount = this.packagePlaced.filter(placed => placed).length;
-            console.log(`${placedCount} of ${this.packages.length} packages placed`);
+            console.log("All pieces placed!");
+            return true; // Signal to end minigame
         }
+        
+        return false;
     },
+    
     
     update: function() {
         const currentTime = Date.now();
@@ -891,9 +886,9 @@ const packageFittingGame = {
             if (this.timeRemaining <= 0) {
                 this.timeRemaining = 0;
                 this.completed = true;
-                // Success if most packages are placed
+                //uccess if most packages are placed
                 const placedCount = this.packagePlaced.filter(placed => placed).length;
-                this.success = placedCount >= 5; // Need at least 5 out of 7 packages
+                this.success = placedCount >= 5; //Need at least 5 out of 7 packages
             }
         }
     },
@@ -901,14 +896,14 @@ const packageFittingGame = {
     handleMouseDown: function(x, y) {
         if (this.completed) return;
         
-        // Check if clicking on a package
+        //check if clicking on a package
         for (let i = this.packages.length - 1; i >= 0; i--) {
             const pkg = this.packages[i];
             
             if (!pkg.placed && this.isPointInPackage(x, y, pkg)) {
                 this.draggedPackage = pkg;
                 
-                // Move package to the end of the array to draw it on top
+                //Move package to the end of the array to draw it on top
                 this.packages.splice(i, 1);
                 this.packages.push(pkg);
                 
@@ -919,15 +914,15 @@ const packageFittingGame = {
     
     handleMouseMove: function(x, y) {
         if (this.draggedPackage) {
-            // Update dragged package position
+            //update dragged package position
             this.draggedPackage.x = x - this.draggedPackage.width / 2;
             this.draggedPackage.y = y - this.draggedPackage.height / 2;
             
-            // Check if package is over the grid
+            //check if package is over the grid
             const gridX = canvas.width / 2 - (this.gridWidth * this.cellSize) / 2;
             const gridY = canvas.height * 0.35;
             
-            // Highlight grid cells where package could be placed
+            //Highlight grid cells where package could be placed
             this.packageHover = {
                 package: this.draggedPackage,
                 valid: this.canPlacePackage(this.draggedPackage, gridX, gridY, x - this.draggedPackage.width / 2, y - this.draggedPackage.height / 2)
@@ -943,12 +938,14 @@ const packageFittingGame = {
             const gridY = canvas.height * 0.35;
             
             if (this.packageHover && this.packageHover.valid) {
-                // Place package on grid
-                this.placePackage(this.draggedPackage, gridX, gridY, this.draggedPackage.x, this.draggedPackage.y);
+                // Place package on grid and check if game should end
+                if (this.placePackage(this.draggedPackage, gridX, gridY, this.draggedPackage.x, this.draggedPackage.y)) {
+                    completeMinigame(); // End the minigame immediately
+                }
             } else {
-                // Return package to original position
                 this.draggedPackage.x = this.draggedPackage.originalX;
                 this.draggedPackage.y = this.draggedPackage.originalY;
+                this.draggedPackage.placed = false;
             }
             
             this.draggedPackage = null;
@@ -959,44 +956,63 @@ const packageFittingGame = {
     handleClick: function(x, y) {
         if (this.completed) {
             if (x >= canvas.width * 0.4 && x <= canvas.width * 0.6 &&
-                y >= canvas.height * 0.7 && y <= canvas.height * 0.7 + 40) {
-                return true;
+                y >= canvas.height * 0.8 && y <= canvas.height * 0.8 + 40) {
+                console.log("Continue clicked");
+                return true; 
             }
         }
+        if (x >= canvas.width * 0.8 && x <= canvas.width * 0.8 + 80 &&
+            y >= canvas.height * 0.7 && y <= canvas.height * 0.7 + 40) {
+            console.log("Quit clicked");
+            this.completed = true; 
+            this.success = false;
+            return true;
+        }
+        
         return false;
     },
     
     isPointInPackage: function(x, y, pkg) {
-        // Helper function to check if a point is within a package shape
+        //check if a point is within a package shape
         if (x < pkg.x || x > pkg.x + pkg.width || y < pkg.y || y > pkg.y + pkg.height) {
             return false;
         }
         
-        // Convert to local coordinates
+        //convert to local coordinates
         const localX = Math.floor((x - pkg.x) / this.cellSize);
         const localY = Math.floor((y - pkg.y) / this.cellSize);
         
-        // Make sure localX and localY are valid indices
+        //Make sure localX and localY are valid indices
         if (localY < 0 || localY >= pkg.shape.length || 
             localX < 0 || localX >= pkg.shape[0].length) {
             return false;
         }
         
-        // Check if point is in a filled cell of the shape
+        //check if point is in a filled cell of the shape
         return pkg.shape[localY][localX] === 1;
     },
     
     draw: function() {
-        // background panel
+        //background panel
         ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
         ctx.fillRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // border
+        //border
         ctx.strokeStyle = 'rgba(255, 0, 179, 0.8)';
         ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+        //quit button
+        ctx.fillRect(canvas.width * 0.8, canvas.height * 0.7, 80, 40);
         
-        // inner glow
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(canvas.width * 0.8, canvas.height * 0.7, 80, 40);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '18px Orbitron';
+        ctx.fillText("Quit", canvas.width * 0.8 + 20, canvas.height * 0.7 + 25);
+            //inner glow
         const gradient = ctx.createLinearGradient(
             canvas.width * 0.2, canvas.height * 0.2, 
             canvas.width * 0.8, canvas.height * 0.8
@@ -1007,22 +1023,22 @@ const packageFittingGame = {
         ctx.fillStyle = gradient;
         ctx.fillRect(canvas.width * 0.205, canvas.height * 0.205, canvas.width * 0.59, canvas.height * 0.59);
         
-        // title
+        //title
         ctx.fillStyle = '#ff00b3';
         ctx.font = 'bold 28px Orbitron';
         ctx.textAlign = 'center';
         ctx.fillText("Fit the Packages into the Container", canvas.width * 0.5, canvas.height * 0.25);
         
-        // timer and instructions
+        //timer and instructions
         ctx.fillStyle = this.timeRemaining < 10 ? '#ff3366' : '#e0e0ff';
-        ctx.font = '18px "Exo 2"';
+        ctx.font = 'bold 22px Orbitron';
         ctx.fillText(`Time: ${Math.ceil(this.timeRemaining)}s   Packages: ${this.packagePlaced.filter(p => p).length}/${this.packages.length}`, canvas.width * 0.5, canvas.height * 0.29);
         
-        // Draw grid container
+        //Draw grid container
         const gridX = canvas.width / 2 - (this.gridWidth * this.cellSize) / 2;
         const gridY = canvas.height * 0.35;
         
-        // Container outline with glow
+        //container outline with glow
         ctx.shadowBlur = 10;
         ctx.shadowColor = 'rgba(255, 0, 179, 0.5)';
         ctx.strokeStyle = 'rgba(255, 0, 179, 0.8)';
@@ -1030,15 +1046,15 @@ const packageFittingGame = {
         ctx.strokeRect(gridX - 2, gridY - 2, this.gridWidth * this.cellSize + 4, this.gridHeight * this.cellSize + 4);
         ctx.shadowBlur = 0;
         
-        // Container background
+        //container background
         ctx.fillStyle = 'rgba(26, 26, 46, 0.5)';
         ctx.fillRect(gridX, gridY, this.gridWidth * this.cellSize, this.gridHeight * this.cellSize);
         
-        // Grid lines
+        //grid lines
         ctx.strokeStyle = 'rgba(255, 0, 179, 0.3)';
         ctx.lineWidth = 1;
         
-        // Vertical lines
+        //vertical lines
         for (let x = 0; x <= this.gridWidth; x++) {
             ctx.beginPath();
             ctx.moveTo(gridX + x * this.cellSize, gridY);
@@ -1046,7 +1062,7 @@ const packageFittingGame = {
             ctx.stroke();
         }
         
-        // Horizontal lines
+        //horizontal lines
         for (let y = 0; y <= this.gridHeight; y++) {
             ctx.beginPath();
             ctx.moveTo(gridX, gridY + y * this.cellSize);
@@ -1054,15 +1070,13 @@ const packageFittingGame = {
             ctx.stroke();
         }
         
-        // Draw placed packages in the grid
+        //draw placed packages in the grid
         for (let y = 0; y < this.gridHeight; y++) {
             for (let x = 0; x < this.gridWidth; x++) {
                 if (this.grid[y][x]) {
-                    // Cell with a placed package
+                    
                     ctx.fillStyle = this.grid[y][x];
                     ctx.fillRect(gridX + x * this.cellSize, gridY + y * this.cellSize, this.cellSize, this.cellSize);
-                    
-                    // Cell border
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
                     ctx.lineWidth = 1;
                     ctx.strokeRect(gridX + x * this.cellSize, gridY + y * this.cellSize, this.cellSize, this.cellSize);
@@ -1070,20 +1084,20 @@ const packageFittingGame = {
             }
         }
         
-        // Draw packages (except the one being dragged)
+        //draw packages 
         for (const pkg of this.packages) {
             if (pkg !== this.draggedPackage && !pkg.placed) {
                 this.drawPackage(pkg);
             }
         }
         
-        // Draw hover effect for the package being placed
+        //draw hover effect for the package being placed
         if (this.packageHover) {
             const pkg = this.packageHover.package;
             const cellX = Math.floor((pkg.x - gridX) / this.cellSize) * this.cellSize + gridX;
             const cellY = Math.floor((pkg.y - gridY) / this.cellSize) * this.cellSize + gridY;
             
-            // Draw ghost outline where package would be placed
+            //draw outline where package would be placed
             ctx.globalAlpha = 0.4;
             ctx.fillStyle = this.packageHover.valid ? 'rgba(0, 255, 170, 0.5)' : 'rgba(255, 51, 102, 0.5)';
             
@@ -1102,27 +1116,27 @@ const packageFittingGame = {
             ctx.globalAlpha = 1.0;
         }
         
-        // Draw the package being dragged on top
+        //draw the package being dragged on top
         if (this.draggedPackage) {
             this.drawPackage(this.draggedPackage);
         }
         
-        // Instructions text
+        //Instructions text
         ctx.fillStyle = '#e0e0ff';
-        ctx.font = '16px "Exo 2"';
+        ctx.font = 'bold 22px Orbitron';
         ctx.fillText("Drag and drop the packages to fit them all in the container", canvas.width * 0.5, canvas.height * 0.65);
         
         if (this.completed) {
-            // completion panel
+            //completion panel
             ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
             ctx.fillRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
             
-            // panel border
+            //panel border
             ctx.strokeStyle = this.success ? 'rgba(0, 255, 170, 0.8)' : 'rgba(255, 51, 102, 0.8)';
             ctx.lineWidth = 2;
             ctx.strokeRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
             
-            // completion message
+            //completion message
             ctx.fillStyle = this.success ? '#00ffaa' : '#ff3366';
             ctx.font = 'bold 24px Orbitron';
             
@@ -1130,12 +1144,12 @@ const packageFittingGame = {
                 ctx.fillText("Container Packed!", canvas.width * 0.5, canvas.height * 0.5);
             } else {
                 ctx.fillText("Time's up!", canvas.width * 0.5, canvas.height * 0.5);
-                ctx.font = '18px "Exo 2"';
+                ctx.font = 'bold 22px Orbitron';
                 const placedCount = this.packagePlaced.filter(p => p).length;
                 ctx.fillText(`You packed ${placedCount} out of ${this.packages.length} packages`, canvas.width * 0.5, canvas.height * 0.55);
             }
             
-            // continue button
+            //continue button
             ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
             ctx.fillRect(canvas.width * 0.4, canvas.height * 0.7, canvas.width * 0.2, 40);
             
@@ -1150,15 +1164,15 @@ const packageFittingGame = {
     },
     
     drawPackage: function(pkg) {
-        // Draw a single package with its shape
+        //Draw a single package with its shape
         for (let y = 0; y < pkg.shape.length; y++) {
             for (let x = 0; x < pkg.shape[0].length; x++) {
                 if (pkg.shape[y][x]) {
-                    // Add glow effect
+                    //Add glow effect
                     ctx.shadowBlur = pkg === this.draggedPackage ? 10 : 5;
                     ctx.shadowColor = pkg.color;
                     
-                    // Cell fill
+                    //cell fill
                     ctx.fillStyle = pkg.color;
                     ctx.fillRect(
                         pkg.x + x * this.cellSize, 
@@ -1167,10 +1181,10 @@ const packageFittingGame = {
                         this.cellSize
                     );
                     
-                    // Reset shadow
+                    //reset shadow
                     ctx.shadowBlur = 0;
                     
-                    // Cell border
+                    //cell border
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
                     ctx.lineWidth = 1;
                     ctx.strokeRect(
@@ -1185,7 +1199,7 @@ const packageFittingGame = {
     }
 };
 
-// scientist: pop the lock game
+//scientist: pop the lock game
 const popTheLockGame = {
     angle: 0,
     targetAngle: 45,
@@ -1282,16 +1296,16 @@ const popTheLockGame = {
     },
     
     draw: function() {
-        // background panel
+        //background panel
         ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
         ctx.fillRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // border
+        //border
         ctx.strokeStyle = 'rgba(0, 194, 255, 0.8)';
         ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // inner glow
+        //inner glow
         const gradient = ctx.createLinearGradient(
             canvas.width * 0.2, canvas.height * 0.2, 
             canvas.width * 0.8, canvas.height * 0.8
@@ -1302,26 +1316,26 @@ const popTheLockGame = {
         ctx.fillStyle = gradient;
         ctx.fillRect(canvas.width * 0.205, canvas.height * 0.205, canvas.width * 0.59, canvas.height * 0.59);
         
-        // title
+        //title
         ctx.fillStyle = '#00c2ff';
         ctx.font = 'bold 28px Orbitron';
         ctx.textAlign = 'center';
         ctx.fillText("Calibrate the Quantum Lock", canvas.width * 0.5, canvas.height * 0.25);
         
-        // instructions
+        //instructions
         ctx.fillStyle = '#e0e0ff';
-        ctx.font = '16px "Exo 2"';
+        ctx.font = 'bold 22px Orbitron';
         ctx.fillText("Click when the pointer aligns with the target zone", canvas.width * 0.5, canvas.height * 0.3);
         
-        // game stats
+        //game stats
         ctx.fillText(`Level: ${this.level}   Lives: ${this.lives}   Success: ${this.successCount}/${this.requiredSuccess}`, canvas.width * 0.5, canvas.height * 0.35);
         
-        // draw lock circle with glow
+        //draw lock circle with glow
         const centerX = canvas.width * 0.5;
         const centerY = canvas.height * 0.5;
         const radius = canvas.width * 0.15;
         
-        // main circle
+        //main circle
         ctx.shadowBlur = 20;
         ctx.shadowColor = 'rgba(0, 194, 255, 0.5)';
         ctx.strokeStyle = 'rgba(50, 50, 80, 0.7)';
@@ -1331,7 +1345,7 @@ const popTheLockGame = {
         ctx.stroke();
         ctx.shadowBlur = 0;
         
-        // target area with glow
+        //target area with glow
         ctx.shadowBlur = 10;
         ctx.shadowColor = 'rgba(0, 255, 255, 0.8)';
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.7)';
@@ -1343,7 +1357,7 @@ const popTheLockGame = {
         ctx.stroke();
         ctx.shadowBlur = 0;
         
-        // pointer line
+        //pointer line
         const pointerAngle = this.angle * (Math.PI / 180);
         const pointerX = centerX + Math.cos(pointerAngle) * radius;
         const pointerY = centerY + Math.sin(pointerAngle) * radius;
@@ -1358,7 +1372,7 @@ const popTheLockGame = {
         ctx.stroke();
         ctx.shadowBlur = 0;
         
-        // pointer cap with glow
+        //pointer cap with glow
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ff3366';
         ctx.fillStyle = '#ff3366';
@@ -1368,16 +1382,16 @@ const popTheLockGame = {
         ctx.shadowBlur = 0;
         
         if (this.completed) {
-            // completion panel
+            //completion panel
             ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
             ctx.fillRect(canvas.width * 0.3, canvas.height * 0.45, canvas.width * 0.4, canvas.height * 0.2);
             
-            // panel border
+            //panel border
             ctx.strokeStyle = this.success ? 'rgba(0, 255, 170, 0.8)' : 'rgba(255, 51, 102, 0.8)';
             ctx.lineWidth = 2;
             ctx.strokeRect(canvas.width * 0.3, canvas.height * 0.45, canvas.width * 0.4, canvas.height * 0.2);
             
-            // completion message
+            //completion message
             ctx.fillStyle = this.success ? '#00ffaa' : '#ff3366';
             ctx.font = 'bold 24px Orbitron';
             
@@ -1387,7 +1401,7 @@ const popTheLockGame = {
                 ctx.fillText("Calibration Failed!", canvas.width * 0.5, canvas.height * 0.55);
             }
             
-            // continue button
+            //continue button
             ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
             ctx.fillRect(canvas.width * 0.4, canvas.height * 0.75, canvas.width * 0.2, 40);
             
@@ -1402,7 +1416,7 @@ const popTheLockGame = {
     }
 };
 
-// trader: item valuation game
+//trader: item valuation game
 const itemValuationGame = {
     items: [],
     totalItems: 5,
@@ -1420,7 +1434,7 @@ const itemValuationGame = {
         this.success = false;
         this.score = 0;
         
-        // Create random items
+        //create random items
         const itemNames = [
             "Ancient Nano-Tech", "Quantum Crystal", "Holographic Memory Core",
             "Fusion Battery", "Neural Interface", "Time Displacement Coil",
@@ -1428,12 +1442,12 @@ const itemValuationGame = {
         ];
         
         for (let i = 0; i < this.totalItems; i++) {
-            // Get random item name
+            //Get random item name
             const nameIndex = Math.floor(Math.random() * itemNames.length);
             const name = itemNames[nameIndex];
-            itemNames.splice(nameIndex, 1); // Remove used name
+            itemNames.splice(nameIndex, 1); //remove used name
             
-            // Random value between 10 and 90
+            //random value between 10 and 90
             const value = 10 + Math.floor(Math.random() * 81);
             
             this.items.push({
@@ -1447,37 +1461,35 @@ const itemValuationGame = {
     },
     
     handleClick: function(x, y) {
-        // Check if game is complete and clicking continue
         if (this.completed) {
             if (x >= canvas.width * 0.4 && x <= canvas.width * 0.6 &&
                 y >= canvas.height * 0.8 && y <= canvas.height * 0.8 + 40) {
-                console.log("Item valuation continue clicked");
                 return true;
             }
             return false;
         }
         
-        // Check if all items have been valued
+        //check if all items have been valued
         if (this.currentItem >= this.totalItems) {
             this.completed = true;
-            this.success = this.score >= 30; // Need 30 out of 100 possible points
+            this.success = this.score >= 30; //Need 30 out of 100 possible points
             return false;
         }
         
-        // Check if clicking on slider
+        //check if clicking on slider
         if (y >= canvas.height * 0.6 - 10 && y <= canvas.height * 0.6 + 10) {
             if (x >= canvas.width * 0.3 && x <= canvas.width * 0.7) {
-                // Update guess value based on position
+                //update guess value based on position
                 this.guessValue = Math.round(((x - canvas.width * 0.3) / (canvas.width * 0.4)) * 100);
                 return false;
             }
         }
         
-        // Check if clicking submit button
+        //check if clicking submit button
         if (x >= canvas.width * 0.4 && x <= canvas.width * 0.6 &&
             y >= canvas.height * 0.7 && y <= canvas.height * 0.7 + 40) {
             
-            // Submit guess
+            //submit guess
             this.submitGuess();
             return false;
         }
@@ -1490,42 +1502,42 @@ const itemValuationGame = {
         item.guessed = true;
         item.playerGuess = this.guessValue;
         
-        // Calculate points based on how close the guess was
+        //calculate points based on how close the guess was
         const diff = Math.abs(item.value - item.playerGuess);
         if (diff <= 5) {
-            item.points = 20; // Very close
+            item.points = 20; //Very close
         } else if (diff <= 15) {
-            item.points = 10; // Somewhat close
+            item.points = 10; //somewhat close
         } else if (diff <= 30) {
-            item.points = 5; // Not too far
+            item.points = 5; //Not too far
         } else {
-            item.points = 0; // Way off
+            item.points = 0; //Way off
         }
         
         this.score += item.points;
         this.currentItem++;
         
-        // Reset guess for next item
+        //reset guess for next item
         this.guessValue = 50;
         
-        // Check if all items have been valued
+        //check if all items have been valued
         if (this.currentItem >= this.totalItems) {
             this.completed = true;
-            this.success = this.score >= 30; // Need 30 out of 100 possible points
+            this.success = this.score >= 30; //Need 30 out of 100 possible points
         }
     },
     
     draw: function() {
-        // background panel
+        //background panel
         ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
         ctx.fillRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // border
+        //border
         ctx.strokeStyle = 'rgba(255, 170, 0, 0.8)';
         ctx.lineWidth = 2;
         ctx.strokeRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
         
-        // inner glow
+        //inner glow
         const gradient = ctx.createLinearGradient(
             canvas.width * 0.2, canvas.height * 0.2, 
             canvas.width * 0.8, canvas.height * 0.8
@@ -1536,19 +1548,19 @@ const itemValuationGame = {
         ctx.fillStyle = gradient;
         ctx.fillRect(canvas.width * 0.205, canvas.height * 0.205, canvas.width * 0.59, canvas.height * 0.59);
         
-        // title
+        //title
         ctx.fillStyle = '#ffaa00';
         ctx.font = 'bold 28px Orbitron';
         ctx.textAlign = 'center';
         ctx.fillText("Appraise the Rare Artifacts", canvas.width * 0.5, canvas.height * 0.25);
         
-        // If all items have been valued, show results
+        //If all items have been valued, show results
         if (this.completed) {
             ctx.fillStyle = '#e0e0ff';
-            ctx.font = '20px "Exo 2"';
+            ctx.font = 'bold 22px Orbitron';
             ctx.fillText("Final Results:", canvas.width * 0.5, canvas.height * 0.35);
             
-            // Draw item results
+            //Draw item results
             for (let i = 0; i < this.totalItems; i++) {
                 const item = this.items[i];
                 const y = canvas.height * 0.4 + (i * 40);
@@ -1564,13 +1576,11 @@ const itemValuationGame = {
                 ctx.fillText(`Actual: ${item.value}`, canvas.width * 0.75, y);
             }
             
-            // Draw total score
+            //Draw total score
             ctx.fillStyle = this.success ? '#00ffaa' : '#ff3366';
             ctx.font = 'bold 24px Orbitron';
             ctx.textAlign = 'center';
             ctx.fillText(`Total Score: ${this.score} / 100`, canvas.width * 0.5, canvas.height * 0.7);
-            
-            // Draw continue button
             ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
             ctx.fillRect(canvas.width * 0.4, canvas.height * 0.8, canvas.width * 0.2, 40);
             
@@ -1585,20 +1595,20 @@ const itemValuationGame = {
             return;
         }
         
-        // Draw current item
+        //Draw current item
         if (this.currentItem < this.totalItems) {
             const item = this.items[this.currentItem];
             
-            // Draw item name
+            //Draw item name
             ctx.fillStyle = '#ffaa00';
             ctx.font = 'bold 22px Orbitron';
             ctx.fillText(item.name, canvas.width * 0.5, canvas.height * 0.4);
             
-            // Draw item "image" (holographic projection effect)
+            //Draw item "image" (holographic projection effect)
             ctx.shadowBlur = 20;
             ctx.shadowColor = '#ffaa00';
             
-            // Base shape
+            //Base shape
             ctx.fillStyle = 'rgba(255, 170, 0, 0.3)';
             ctx.beginPath();
             ctx.moveTo(canvas.width * 0.5, canvas.height * 0.45);
@@ -1608,7 +1618,7 @@ const itemValuationGame = {
             ctx.closePath();
             ctx.fill();
             
-            // Holographic lines
+            //Holographic lines
             ctx.strokeStyle = 'rgba(255, 170, 0, 0.7)';
             ctx.lineWidth = 1;
             for (let i = 0; i < 5; i++) {
@@ -1625,11 +1635,11 @@ const itemValuationGame = {
             
             ctx.shadowBlur = 0;
             
-            // Draw value slider
+            //Draw value slider
             ctx.fillStyle = 'rgba(30, 30, 50, 0.7)';
             ctx.fillRect(canvas.width * 0.3, canvas.height * 0.6 - 5, canvas.width * 0.4, 10);
             
-            // Draw value markers
+            //Draw value markers
             ctx.fillStyle = '#e0e0ff';
             ctx.font = '14px "Exo 2"';
             ctx.textAlign = 'center';
@@ -1640,7 +1650,7 @@ const itemValuationGame = {
                 ctx.fillText(i * 10, x, canvas.height * 0.6 + 20);
             }
             
-            // Draw slider position with glow
+            //Draw slider position with glow
             const sliderX = canvas.width * 0.3 + (canvas.width * 0.4 * (this.guessValue / 100));
             
             ctx.shadowBlur = 15;
@@ -1651,12 +1661,12 @@ const itemValuationGame = {
             ctx.fill();
             ctx.shadowBlur = 0;
             
-            // Draw current guess value
+            //Draw current guess value
             ctx.fillStyle = '#e0e0ff';
             ctx.font = '18px "Exo 2"';
             ctx.fillText(`Your estimate: ${this.guessValue}`, canvas.width * 0.5, canvas.height * 0.65);
             
-            // Draw submit button
+            //Draw submit button
             ctx.fillStyle = 'rgba(255, 170, 0, 0.3)';
             ctx.fillRect(canvas.width * 0.4, canvas.height * 0.7, canvas.width * 0.2, 40);
             
@@ -1671,301 +1681,9 @@ const itemValuationGame = {
     }
 };
 
-// engineer: circuit connection game
-const circuitConnectionGame = {
-    nodes: [],
-    connections: [],
-    selectedNode: null,
-    completedCircuits: 0,
-    totalCircuits: 3,
-    completed: false,
-    success: false,
-    
-    init: function() {
-        this.nodes = [];
-        this.connections = [];
-        this.selectedNode = null;
-        this.completedCircuits = 0;
-        this.completed = false;
-        this.success = false;
-        
-        // Create power sources
-        for (let i = 0; i < this.totalCircuits; i++) {
-            this.nodes.push({
-                type: 'source',
-                x: canvas.width * 0.3,
-                y: canvas.height * (0.3 + (i * 0.15)),
-                radius: 15,
-                color: '#cc00ff',
-                connected: false,
-                circuit: i
-            });
-        }
-        
-        // Create targets
-        for (let i = 0; i < this.totalCircuits; i++) {
-            this.nodes.push({
-                type: 'target',
-                x: canvas.width * 0.7,
-                y: canvas.height * (0.3 + ((Math.random() * this.totalCircuits) * 0.15)),
-                radius: 15,
-                color: '#4488ff',
-                connected: false,
-                circuit: i
-            });
-        }
-        
-        // Create junction points
-        for (let i = 0; i < 5; i++) {
-            this.nodes.push({
-                type: 'junction',
-                x: canvas.width * (0.4 + (Math.random() * 0.2)),
-                y: canvas.height * (0.3 + (Math.random() * 0.45)),
-                radius: 8,
-                color: '#ffffff',
-                connected: false,
-                circuit: -1
-            });
-        }
-    },
-    
-    handleClick: function(x, y) {
-        // Check if game is completed and clicking continue
-        if (this.completed) {
-            if (x >= canvas.width * 0.4 && x <= canvas.width * 0.6 &&
-                y >= canvas.height * 0.75 && y <= canvas.height * 0.75 + 40) {
-                console.log("Circuit connection continue clicked");
-                return true;
-            }
-            return false;
-        }
-        
-        // Check if clicking on a node
-        for (const node of this.nodes) {
-            const dx = x - node.x;
-            const dy = y - node.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance <= node.radius) {
-                // If no node is selected, select this one
-                if (!this.selectedNode) {
-                    // Can only select sources or already connected junctions
-                    if (node.type === 'source' || (node.type === 'junction' && node.connected)) {
-                        this.selectedNode = node;
-                    }
-                } else {
-                    // Trying to connect to another node
-                    
-                    // Can't connect to self
-                    if (node === this.selectedNode) {
-                        this.selectedNode = null;
-                        return false;
-                    }
-                    
-                    // Check if valid connection
-                    if (this.isValidConnection(this.selectedNode, node)) {
-                        // Create connection
-                        this.connections.push({
-                            from: this.selectedNode,
-                            to: node,
-                            color: this.selectedNode.circuit >= 0 ? this.selectedNode.color : '#ffffff'
-                        });
-                        
-                        // Mark target node as connected
-                        node.connected = true;
-                        
-                        // If target is a junction, it inherits the circuit of the source
-                        if (node.type === 'junction' && node.circuit === -1) {
-                            node.circuit = this.selectedNode.circuit;
-                            node.color = this.selectedNode.color;
-                        }
-                        
-                        // Check if the target is a target node with matching circuit
-                        if (node.type === 'target' && node.circuit === this.selectedNode.circuit) {
-                            this.completedCircuits++;
-                            
-                            // Check if all circuits are complete
-                            if (this.completedCircuits >= this.totalCircuits) {
-                                this.completed = true;
-                                this.success = true;
-                            }
-                        }
-                        
-                        // Select the new node for chaining connections
-                        this.selectedNode = node;
-                    } else {
-                        // Invalid connection, deselect
-                        this.selectedNode = null;
-                    }
-                }
-                
-                return false;
-            }
-        }
-        
-        // Clicked elsewhere, deselect
-        this.selectedNode = null;
-        return false;
-    },
-    
-    isValidConnection: function(from, to) {
-        // Can't connect to already connected target
-        if (to.type === 'target' && to.connected) {
-            return false;
-        }
-        
-        // Check if there's already a connection between these nodes
-        for (const conn of this.connections) {
-            if ((conn.from === from && conn.to === to) ||
-                (conn.from === to && conn.to === from)) {
-                return false;
-            }
-        }
-        
-        // If connecting from a source, can only connect to junctions or matching targets
-        if (from.type === 'source') {
-            return to.type === 'junction' || (to.type === 'target' && to.circuit === from.circuit);
-        }
-        
-        // If connecting from a junction, can connect to other junctions or matching targets
-        if (from.type === 'junction') {
-            if (to.type === 'junction') {
-                return true;
-            }
-            
-            if (to.type === 'target') {
-                return to.circuit === from.circuit;
-            }
-            
-            return false;
-        }
-        
-        // Can't connect from a target
-        return false;
-    },
-    
-    draw: function() {
-        // background panel
-        ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
-        ctx.fillRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
-        
-        // border
-        ctx.strokeStyle = 'rgba(204, 0, 255, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
-        
-        // inner glow
-        const gradient = ctx.createLinearGradient(
-            canvas.width * 0.2, canvas.height * 0.2, 
-            canvas.width * 0.8, canvas.height * 0.8
-        );
-        gradient.addColorStop(0, "rgba(204, 0, 255, 0.1)");
-        gradient.addColorStop(0.5, "rgba(68, 136, 255, 0.05)");
-        gradient.addColorStop(1, "rgba(0, 194, 255, 0.1)");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(canvas.width * 0.205, canvas.height * 0.205, canvas.width * 0.59, canvas.height * 0.59);
-        
-        // title
-        ctx.fillStyle = '#cc00ff';
-        ctx.font = 'bold 28px Orbitron';
-        ctx.textAlign = 'center';
-        ctx.fillText("Recalibrate the City Power Grid", canvas.width * 0.5, canvas.height * 0.25);
-        
-        // instructions
-        ctx.fillStyle = '#e0e0ff';
-        ctx.font = '16px "Exo 2"';
-        ctx.fillText("Connect power sources to matching targets, using junction points to route around obstacles", canvas.width * 0.5, canvas.height * 0.28);
-        
-        // Draw connections with glow
-        for (const conn of this.connections) {
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = conn.color;
-            ctx.strokeStyle = conn.color;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(conn.from.x, conn.from.y);
-            ctx.lineTo(conn.to.x, conn.to.y);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
-        
-        // Draw nodes
-        for (const node of this.nodes) {
-            // Draw node circle with glow
-            ctx.shadowBlur = node === this.selectedNode ? 15 : 10;
-            ctx.shadowColor = node.color;
-            ctx.fillStyle = node.color;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw node border
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            
-            // Draw node type label
-            if (node.type === 'source') {
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '12px Orbitron';
-                ctx.textAlign = 'center';
-                ctx.fillText("S" + node.circuit, node.x, node.y + 4);
-            } else if (node.type === 'target') {
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '12px Orbitron';
-                ctx.textAlign = 'center';
-                ctx.fillText("T" + node.circuit, node.x, node.y + 4);
-            }
-            
-            // Highlight selected node
-            if (node === this.selectedNode) {
-                ctx.strokeStyle = '#ffff00';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.radius + 5, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
-        
-        // Draw completion message
-        if (this.completed) {
-            // completion panel
-            ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
-            ctx.fillRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
-            
-            // panel border
-            ctx.strokeStyle = this.success ? 'rgba(0, 255, 170, 0.8)' : 'rgba(255, 51, 102, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(canvas.width * 0.3, canvas.height * 0.4, canvas.width * 0.4, canvas.height * 0.2);
-            
-            // completion message
-            ctx.fillStyle = this.success ? '#00ffaa' : '#ff3366';
-            ctx.font = 'bold 24px Orbitron';
-            ctx.fillText(
-                this.success ? "Power Grid Calibrated!" : "Calibration Failed!", 
-                canvas.width * 0.5, 
-                canvas.height * 0.5
-            );
-            
-            // continue button
-            ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
-            ctx.fillRect(canvas.width * 0.4, canvas.height * 0.75, canvas.width * 0.2, 40);
-            
-            ctx.strokeStyle = 'rgba(0, 194, 255, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(canvas.width * 0.4, canvas.height * 0.75, canvas.width * 0.2, 40);
-            
-            ctx.fillStyle = '#e0e0ff';
-            ctx.font = '18px Orbitron';
-            ctx.fillText("Continue", canvas.width * 0.5, canvas.height * 0.75 + 25);
-        }
-    }
-};
 
-// npcs with tasks
+
+//npcs with tasks
 const npcs = [
     {
         id: 'mechanic',
@@ -2041,25 +1759,10 @@ const npcs = [
             minigame: itemValuationGame,
             reward: 120
         }
-    },
-    {
-        id: 'engineer',
-        x: 2200,
-        y: canvas.height * 0.75 - 10,
-        width: 40,
-        height: 70,
-        color: '#cc00ff',
-        name: 'Engineer',
-        dialog: "The city power grid is unstable! Help me recalibrate the circuits for 200 credits!",
-        task: {
-            description: "Connect power sources to their matching targets using junction points",
-            minigame: circuitConnectionGame,
-            reward: 200
-        }
     }
 ];
 
-// minigame management functions
+//minigame management functions
 function startMinigame(minigame) {
     minigameActive = true;
     currentMinigame = minigame;
@@ -2069,8 +1772,8 @@ function startMinigame(minigame) {
 function completeMinigame() {
     if (currentTask && currentMinigame && currentMinigame.completed) {
         if (currentMinigame.success) {
-            playerMoney += currentTask.reward;
-            moneyCounter.textContent = playerMoney;
+            money += currentTask.reward;
+            moneyCounter.textContent = money;
             currentDialogText = `Great job! You earned ${currentTask.reward} credits.`;
             tasksCompleted++;
             
@@ -2119,7 +1822,7 @@ function drawCityLayers() {
 }
 
 function update() {
-    // Update game timer
+    //update game timer
     gameTimer.update();
     
     if (!player.onGround) {
@@ -2169,8 +1872,9 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     drawCityLayers();
-    
-    // floor with glow
+    gameTimer.draw();
+
+    //floor with glow
     const floorY = canvas.height * 0.85;
     const floorGradient = ctx.createLinearGradient(0, floorY, 0, canvas.height);
     floorGradient.addColorStop(0, 'rgba(15, 15, 30, 0.9)');
@@ -2178,14 +1882,14 @@ function draw() {
     ctx.fillStyle = floorGradient;
     ctx.fillRect(0, floorY, canvas.width, canvas.height - floorY);
     
-    // floor details
+    //floor details
     ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
     for (let i = 0; i < canvas.width; i += 100) {
         const offset = (i + camera.x) % 200;
         ctx.fillRect(i - offset, floorY, 50, 2);
     }
     
-    // glowing grid lines
+    //grid lines
     ctx.strokeStyle = 'rgba(0, 194, 255, 0.4)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -2198,48 +1902,48 @@ function draw() {
     
     ctx.stroke();
     
-    // add subtle glow to grid lines
+    //add glow to grid lines
     ctx.shadowBlur = 5;
     ctx.shadowColor = 'rgba(0, 194, 255, 0.3)';
     ctx.stroke();
     ctx.shadowBlur = 0;
     
-    // draw npcs
+    //draw npcs
     for (const npc of npcs) {
         const screenX = npc.x - camera.x;
         if (screenX > -npc.width && screenX < canvas.width) {
-            // glow effect
+            //glow effect
             ctx.shadowBlur = npc.taskCompleted ? 10 : 5;
             ctx.shadowColor = npc.color;
             
-            // npc body
+            //npc body
             ctx.fillStyle = npc.color;
             ctx.fillRect(screenX, npc.y, npc.width, npc.height);
             
-            // npc head
+            //npc head
             ctx.fillStyle = '#f0f0ff';
             ctx.beginPath();
             ctx.arc(screenX + npc.width/2, npc.y - 10, 15, 0, Math.PI * 2);
             ctx.fill();
             
-            // reset shadow
+            //reset shadow
             ctx.shadowBlur = 0;
             
-            // npc name
+            //npc name
             ctx.fillStyle = '#e0e0ff';
             ctx.font = '14px Orbitron';
             ctx.textAlign = 'center';
             ctx.textShadow = '0 0 5px rgba(0, 0, 0, 0.5)';
             ctx.fillText(npc.name, screenX + npc.width/2, npc.y - 25);
             
-            // completed indicator
+            //completed indicator
             if (npc.taskCompleted) {
                 ctx.fillStyle = '#00ffaa';
                 ctx.beginPath();
                 ctx.arc(screenX + npc.width/2, npc.y - 40, 5, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // glow
+                //glow
                 ctx.shadowBlur = 5;
                 ctx.shadowColor = '#00ffaa';
                 ctx.strokeStyle = '#00ffaa';
@@ -2248,7 +1952,7 @@ function draw() {
                 ctx.shadowBlur = 0;
             }
             
-            // interaction prompt
+            //interaction prompt
             const dx = Math.abs((player.x + player.width/2) - (screenX + npc.width/2));
             if (dx < 70 && !npc.taskCompleted && !dialogOpen) {
                 ctx.fillStyle = '#ffffff';
@@ -2262,24 +1966,24 @@ function draw() {
     }
     
     if (!minigameActive) {
-        // draw player with glow
+        //draw player with glow
         ctx.shadowBlur = 10;
         ctx.shadowColor = 'rgba(0, 194, 255, 0.6)';
         
-        // player body
+        //player body
         ctx.fillStyle = player.facingRight ? '#3366ff' : '#4488ff';
         ctx.fillRect(player.x, player.y, player.width, player.height);
         
-        // player head
+        //player head
         ctx.fillStyle = '#ffcc99';
         ctx.beginPath();
         ctx.arc(player.x + player.width/2, player.y + 15, 10, 0, Math.PI * 2);
         ctx.fill();
         
-        // reset shadow
+        //reset shadow
         ctx.shadowBlur = 0;
         
-        // player legs with animation
+        //player legs with animation
         ctx.fillStyle = '#2244cc';
         
         if (player.onGround) {
@@ -2301,7 +2005,7 @@ function draw() {
             ctx.fillRect(player.x + player.width - 20, player.y + player.height - 25, 10, 25);
         }
         
-        // jump effect
+        //jump effect
         if (!player.onGround) {
             ctx.fillStyle = 'rgba(0, 194, 255, 0.6)';
             for (let i = 0; i < 5; i++) {
@@ -2321,30 +2025,30 @@ function draw() {
         }
     }
     
-    // draw dialog
+    //draw dialog
     if (dialogOpen && currentNPC && !minigameActive) {
         const dialogWidth = canvas.width * 0.6;
         const dialogHeight = canvas.height * 0.3;
         const dialogX = canvas.width/2 - dialogWidth/2;
         const dialogY = canvas.height * 0.6;
         
-        // dialog background with glow
+        //dialog background with glow
         ctx.shadowBlur = 20;
         ctx.shadowColor = currentNPC.color;
         
-        // dialog box
+        //dialog box
         ctx.fillStyle = 'rgba(10, 10, 24, 0.85)';
         ctx.fillRect(dialogX, dialogY, dialogWidth, dialogHeight);
         
-        // dialog border
+        //dialog border
         ctx.strokeStyle = currentNPC.color;
         ctx.lineWidth = 3;
         ctx.strokeRect(dialogX, dialogY, dialogWidth, dialogHeight);
         
-        // reset shadow
+        //reset shadow
         ctx.shadowBlur = 0;
         
-        // inner glow
+        //inner glow
         const gradient = ctx.createLinearGradient(dialogX, dialogY, dialogX + dialogWidth, dialogY + dialogHeight);
         gradient.addColorStop(0, "rgba(" + parseInt(currentNPC.color.slice(1, 3), 16) + ", " + 
                                       parseInt(currentNPC.color.slice(3, 5), 16) + ", " + 
@@ -2353,7 +2057,7 @@ function draw() {
         ctx.fillStyle = gradient;
         ctx.fillRect(dialogX + 3, dialogY + 3, dialogWidth - 6, dialogHeight - 6);
         
-        // npc name
+        //npc name
         ctx.fillStyle = currentNPC.color;
         ctx.font = 'bold 20px Orbitron';
         ctx.textAlign = 'left';
@@ -2362,7 +2066,7 @@ function draw() {
         ctx.fillText(currentNPC.name, dialogX + 20, dialogY + 30);
         ctx.shadowBlur = 0;
         
-        // dialog text
+        //dialog text
         ctx.fillStyle = '#e0e0ff';
         ctx.font = '16px "Exo 2"';
         
@@ -2386,25 +2090,25 @@ function draw() {
         
         ctx.fillText(line, dialogX + 20, y);
         
-        // start mini-game button
+        //start mini-game button
         if (currentTask && currentTask.minigame && !currentMinigame) {
-            // button background with glow
+            //button background with glow
             ctx.shadowBlur = 10;
             ctx.shadowColor = 'rgba(0, 194, 255, 0.7)';
             
-            // button background
+            //button background
             ctx.fillStyle = 'rgba(0, 194, 255, 0.3)';
             ctx.fillRect(dialogX + (dialogWidth/2) - 100, dialogY + dialogHeight - 50, 200, 40);
             
-            // button border
+            //button border
             ctx.strokeStyle = 'rgba(0, 194, 255, 0.8)';
             ctx.lineWidth = 2;
             ctx.strokeRect(dialogX + (dialogWidth/2) - 100, dialogY + dialogHeight - 50, 200, 40);
             
-            // reset shadow
+            //reset shadow
             ctx.shadowBlur = 0;
             
-            // button text
+            //button text
             ctx.fillStyle = '#e0e0ff';
             ctx.font = '18px Orbitron';
             ctx.textAlign = 'center';
@@ -2412,33 +2116,33 @@ function draw() {
         }
     }
     
-    // draw active minigame
+    //draw active minigame
     if (minigameActive && currentMinigame) {
         currentMinigame.draw();
     }
     
-    // draw minimap
+    //draw minimap
     const mapWidth = 150;
     const mapHeight = 30;
     const mapX = canvas.width - mapWidth - 10;
     const mapY = 10;
     
-    // map background with glow
+    //map background with glow
     ctx.shadowBlur = 10;
     ctx.shadowColor = 'rgba(0, 194, 255, 0.3)';
     
     ctx.fillStyle = 'rgba(10, 10, 24, 0.7)';
     ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
     
-    // map border
+    //map border
     ctx.strokeStyle = 'rgba(0, 194, 255, 0.5)';
     ctx.lineWidth = 1;
     ctx.strokeRect(mapX, mapY, mapWidth, mapHeight);
     
-    // reset shadow
+    //reset shadow
     ctx.shadowBlur = 0;
     
-    // draw player position
+    //draw player position
     const totalWorldWidth = worldBounds.max - worldBounds.min;
     const playerPosRatio = (camera.x - worldBounds.min) / totalWorldWidth;
     const playerMapX = mapX + (playerPosRatio * mapWidth);
@@ -2451,7 +2155,7 @@ function draw() {
     ctx.fill();
     ctx.shadowBlur = 0;
     
-    // draw npc positions
+    //draw npc positions
     for (const npc of npcs) {
         const npcPosRatio = (npc.x - worldBounds.min) / totalWorldWidth;
         const npcMapX = mapX + (npcPosRatio * mapWidth);
@@ -2464,24 +2168,24 @@ function draw() {
         }
     }
     
-    // completion message
+    //completion message
     if (tasksCompleted >= npcs.length) {
-        // background panel with glow
+        //background panel with glow
         ctx.shadowBlur = 20;
         ctx.shadowColor = 'rgba(0, 255, 170, 0.5)';
         
         ctx.fillStyle = 'rgba(10, 10, 24, 0.9)';
         ctx.fillRect(canvas.width/2 - 200, canvas.height/2 - 100, 400, 200);
         
-        // panel border
+        //panel border
         ctx.strokeStyle = 'rgba(0, 255, 170, 0.8)';
         ctx.lineWidth = 3;
         ctx.strokeRect(canvas.width/2 - 200, canvas.height/2 - 100, 400, 200);
         
-        // reset shadow
+        //reset shadow
         ctx.shadowBlur = 0;
         
-        // completion text with glow
+        //completion text with glow
         ctx.shadowBlur = 10;
         ctx.shadowColor = 'rgba(0, 255, 170, 0.7)';
         
@@ -2492,13 +2196,13 @@ function draw() {
         
         ctx.font = 'bold 20px Orbitron';
         ctx.fillText(`You've completed all tasks`, canvas.width/2, canvas.height/2);
-        ctx.fillText(`and earned ${playerMoney} credits!`, canvas.width/2, canvas.height/2 + 50);
+        ctx.fillText(`and earned ${money} credits!`, canvas.width/2, canvas.height/2 + 50);
         
         ctx.shadowBlur = 0;
     }
 }
 
-// keyboard input
+//keyboard input
 const keys = {};
 
 window.addEventListener('keydown', function(e) {
@@ -2527,7 +2231,7 @@ window.addEventListener('keyup', function(e) {
     keys[e.key] = false;
 });
 
-// mouse events 
+//mouse events 
 window.addEventListener('mousedown', function(e) {
     mouseX = e.clientX;
     mouseY = e.clientY;
@@ -2602,7 +2306,7 @@ window.addEventListener('click', function(e) {
     }
 });
 
-// window resize
+//window resize
 window.addEventListener('resize', function() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -2618,7 +2322,7 @@ window.addEventListener('resize', function() {
     }
 });
 
-// game loop
+//game loop
 function gameLoop() {
     update();
     draw();

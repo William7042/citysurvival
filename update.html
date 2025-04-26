@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Night City Game</title>
+  <title>boss fight time</title>
   <style>
     body { margin:0; overflow:hidden; background:#000; color:#fff; font-family:Arial,sans-serif; }
     #gameCanvas { display:block; background:#111; }
@@ -18,7 +18,6 @@
       top:70px; right:10px; display:flex;
       align-items:center; gap:6px;
     }
-    /* Force equipped image size */
     #currentUI img {
       width:32px !important;
       height:32px !important;
@@ -102,7 +101,50 @@
       img.src=src;
     });
   }
-
+  function drawNeonGrid() {
+    const gridSize = 50;
+    const fadeDistance = 1000;
+    
+    // Dark floor base
+    ctx.fillStyle = '#000810';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(0, 194, 255, 0.3)';
+    ctx.lineWidth = 1;
+    
+    
+    const startX = -cam.x % gridSize; 
+    for(let x = startX; x < canvas.width; x += gridSize) {
+        const alpha = Math.max(0, 1 - (x / fadeDistance));
+        ctx.strokeStyle = `rgba(0, 194, 255, ${alpha * 0.3})`;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+    
+    //horizontal lines
+    const startY = -cam.y % gridSize; 
+    for(let y = startY; y < canvas.height; y += gridSize) {
+        const perspective = Math.pow(y / canvas.height, 2);
+        const alpha = Math.max(0, 1 - (y / fadeDistance));
+        ctx.strokeStyle = `rgba(0, 194, 255, ${alpha * 0.3})`;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+    
+    //add glow effect
+    const gradient = ctx.createRadialGradient(
+        canvas.width/2, canvas.height/2, 0,
+        canvas.width/2, canvas.height/2, canvas.height
+    );
+    gradient.addColorStop(0, 'rgba(0, 194, 255, 0.1)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   // — Weapons & inventory —
   const weapons=[
     {id:'atom',  name:'AtomGun',  price:100,  dps:10,  type:'ranged', level:1, owned:true,  sprite:null},
@@ -121,7 +163,7 @@
 
   // — Globals & state —
   const bullets=[];
-  let money=0, stats={kills:0,damage:0}, bossActive=false, bossDefeated=false, time=0;
+  let stats={kills:0,damage:0}, bossActive=false, bossDefeated=false, time=0;
   const keys={}, mouse={x:0,y:0}, cam={x:0,y:0};
 
   window.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);
@@ -144,20 +186,27 @@
         dEl=document.getElementById('statDamage'),
         closeStatsBtn=document.getElementById('closeStats'),
         bossEl=document.getElementById('bossHealth');
-
+  let money = parseInt(localStorage.getItem('playerMoney')) || 0;
+  moneyEl.textContent = money;
   canvas.addEventListener('mousemove',e=>{
     const r=canvas.getBoundingClientRect();
     mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top;
   });
   canvas.addEventListener('click',()=>{
     if(current.type==='ranged') shoot();
-    else slash();
+    else slash();d
   });
 
   // — Player & Boss objects —
-  const player={x:100,y:100,w:50,h:80,speed:3,health:100,maxHealth:100,sprite:null},
+  const player={x:100,y:100,w:150,h:240,speed:3,health:100,maxHealth:100,sprite:null},
         boss  ={x:0,y:0,w:150,h:150,speed:2,health:500,maxHealth:500,sprite:null};
-
+  const playerSprites = {
+    standingRight: null,
+    walkingRight: null,
+    attackRight: null,
+    attackTime: 0, // Track attack animation
+    facingRight: true,
+  };
   function resize(){
     canvas.width=innerWidth; canvas.height=innerHeight;
     cam.x=player.x-canvas.width/2;
@@ -167,15 +216,20 @@
 
   // — Load real sprites —
   async function initAssets(){
-    [player.sprite,boss.sprite] = await Promise.all([
-      loadImage('player.png','#0f0',50,80),
-      loadImage('boss.png','#a00',150,150)
+    [playerSprites.standingRight, 
+     playerSprites.walkingRight,
+     playerSprites.attackRight,
+     boss.sprite] = await Promise.all([
+        loadImage('stand.gif', '#0f0', 50, 80),
+        loadImage('running.gif', '#0f0', 50, 80),
+        loadImage('attacking.gif', '#0f0', 50, 80),
+        loadImage('boss.png', '#a00', 150, 150)
     ]);
     // your two PNGs in same folder:
     weapons[1].sprite = await loadImage('cbokj4adaal41.png','#0af',48,48);
     weapons[2].sprite = await loadImage('433-4332234_katana-katana-pixel-art.png','#f80',64,32);
-    // Atom placeholder
-    weapons[0].sprite = createPlaceholder('#888',48,48);
+
+    weapons[0].sprite = await loadImage('atomgun.png', '#888', 48, 48);
   }
 
   // — Shop logic —
@@ -259,18 +313,43 @@
 
   // — Combat: shoot/slash —
   function shoot(){
-    const ox=player.x+player.w/2, oy=player.y+player.h/2;
-    const mx=cam.x+mouse.x, my=cam.y+mouse.y;
-    const dx=mx-ox, dy=my-oy, d=Math.hypot(dx,dy)||1;
-    const speed = current.id==='laser'?18:10;
-    bullets.push({ x:ox,y:oy,vx:dx/d*speed,vy:dy/d*speed,r:4,color:'#0ff' });
+    const px = canvas.width/2-player.w/2;
+    const py = canvas.height/2-player.h/2;
+    const bob = Math.sin(time*0.005)*5;
+    
+    // Use same origin as aiming line
+    const ox = player.x + player.w/2;
+    const oy = player.y + player.h/2 + bob;  // Added bob effect to match visual line
+    
+    const mx = cam.x + mouse.x;
+    const my = cam.y + mouse.y;
+    const dx = mx - ox;
+    const dy = my - oy;
+    const d = Math.hypot(dx,dy) || 1;
+    const speed = current.id === 'laser' ? 18 : 10;
+    
+    bullets.push({ 
+        x: ox,
+        y: oy,
+        vx: dx/d * speed,
+        vy: dy/d * speed,
+        r: 4,
+        color: '#0ff' 
+    });
   }
   function slash(){
-    const px=player.x+player.w/2, py=player.y+player.h/2;
-    const bx=boss.x+boss.w/2, by=boss.y+boss.h/2;
+    playerSprites.attackTime = 500; // Animation lasts 500ms
+    const px = player.x+player.w/2;
+    const py = player.y+player.h/2;
+    const bx = boss.x+boss.w/2;
+    const by = boss.y+boss.h/2;
     if(Math.hypot(px-bx,py-by)<80){
-      boss.health-=current.getDPS();
-      if(boss.health<=0){ boss.health=0; bossDefeated=true; recordKill(current.getDPS()); }
+        boss.health -= current.getDPS();
+        if(boss.health<=0){ 
+            boss.health=0; 
+            bossDefeated=true; 
+            recordKill(current.getDPS()); 
+        }
     }
   }
 
@@ -311,55 +390,106 @@
     });
 
     let last=performance.now();
-    function loop(ts){
-      const delta=ts-last; last=ts; time+=delta;
+
+    function loop(ts) {
+      const delta = ts-last; 
+      last = ts; 
+      time += delta;
+
       // movement
-      const mv=keys['shift']?player.speed*2:player.speed;
-      if(keys['a']||keys['arrowleft']) player.x-=mv;
-      if(keys['d']||keys['arrowright'])player.x+=mv;
-      if(keys['w']||keys['arrowup'])  player.y-=mv;
-      if(keys['s']||keys['arrowdown'])player.y+=mv;
-      cam.x=player.x-canvas.width/2; cam.y=player.y-canvas.height/2;
+      const mv = keys['shift'] ? player.speed*2 : player.speed;
+      if(keys['a']||keys['arrowleft']) player.x -= mv;
+      if(keys['d']||keys['arrowright']) player.x += mv;
+      if(keys['w']||keys['arrowup']) player.y -= mv;
+      if(keys['s']||keys['arrowdown']) player.y += mv;
+      
+      cam.x = player.x-canvas.width/2;
+      cam.y = player.y-canvas.height/2;
+      
+      const px = canvas.width/2-player.w/2;
+      const py = canvas.height/2-player.h/2;
+      const bob = Math.sin(time*0.005)*5;
+
+      // Clear and draw background
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawNeonGrid();
+
+      // Handle sprite selection and drawing
+      ctx.save();
+      let currentSprite;
+      if (playerSprites.attackTime > 0) {
+          currentSprite = playerSprites.attackRight;
+          playerSprites.attackTime -= delta;
+      } else if (keys['a'] || keys['d'] || keys['w'] || keys['s'] ||
+                keys['arrowleft'] || keys['arrowright'] || 
+                keys['arrowup'] || keys['arrowdown']) {
+          currentSprite = playerSprites.walkingRight;
+      } else {
+          currentSprite = playerSprites.standingRight;
+      }
+
+      // Handle direction facing
+      if ((keys['a'] || keys['arrowleft'])) {
+          ctx.scale(-1, 1);
+          ctx.translate(-canvas.width, 0);
+          playerSprites.facingRight = false;
+      } else if (keys['d'] || keys['arrowright']) {
+          playerSprites.facingRight = true;
+      }
+
+      // Draw player sprite
+      if (currentSprite) {
+          ctx.drawImage(currentSprite, px, py+bob, player.w, player.h);
+      }
+      ctx.restore();
 
       if(keys['m']){ money++; moneyEl.textContent=money; }
 
-      // bullets
-      for(let i=bullets.length-1;i>=0;i--){
-        const b=bullets[i]; b.x+=b.vx; b.y+=b.vy;
-        if(b.x<cam.x||b.x>cam.x+canvas.width||b.y<cam.y||b.y>cam.y+canvas.height)
-          bullets.splice(i,1);
+      // Handle bullets
+      for(let i=bullets.length-1; i>=0; i--) {
+          const b = bullets[i];
+          b.x += b.vx;
+          b.y += b.vy;
+          if(b.x<cam.x || b.x>cam.x+canvas.width || 
+            b.y<cam.y || b.y>cam.y+canvas.height) {
+              bullets.splice(i,1);
+          }
       }
 
       healthEl.textContent = Math.floor(player.health);
       updateBoss();
 
-      // draw
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      const px=canvas.width/2-player.w/2, py=canvas.height/2-player.h/2;
-      const bob=Math.sin(time*0.005)*5;
-      ctx.drawImage(player.sprite,px,py+bob,player.w,player.h);
-      // draw held weapon
-      const wx = current.type==='ranged'? 30 : -20;
-      ctx.drawImage(current.sprite,px+wx,py+20,48,48);
-
-      // aiming line
-      ctx.strokeStyle='red'; ctx.beginPath();
-      ctx.moveTo(px+player.w/2,py+player.h/2+bob);
-      ctx.lineTo(mouse.x,mouse.y); ctx.stroke();
-      ctx.strokeStyle='white'; ctx.strokeRect(mouse.x-5,mouse.y-5,10,10);
-
-      bullets.forEach(b=>{
-        ctx.fillStyle=b.color;
-        ctx.beginPath(); ctx.arc(b.x-cam.x,b.y-cam.y,b.r,0,2*Math.PI); ctx.fill();
-      });
-
-      if(bossActive&&!bossDefeated){
-        const bbob=Math.sin(time*0.003)*8;
-        ctx.drawImage(boss.sprite,boss.x-cam.x,boss.y-cam.y+bbob,boss.w,boss.h);
+      // Draw weapon
+      const wx = current.type === 'ranged' ? 30 : -20;
+      if (current.sprite) {
+          ctx.drawImage(current.sprite, px+wx, py+20, 48, 48);
       }
 
-      if(player.health>0) requestAnimationFrame(loop);
-    }
+      // Draw aiming line
+      ctx.strokeStyle = 'red';
+      ctx.beginPath();
+      ctx.moveTo(px+player.w/2, py+player.h/2+bob);
+      ctx.lineTo(mouse.x, mouse.y);
+      ctx.stroke();
+      ctx.strokeStyle = 'white';
+      ctx.strokeRect(mouse.x-5, mouse.y-5, 10, 10);
+
+      // Draw bullets
+      bullets.forEach(b => {
+          ctx.fillStyle = b.color;
+          ctx.beginPath();
+          ctx.arc(b.x-cam.x, b.y-cam.y, b.r, 0, 2*Math.PI);
+          ctx.fill();
+      });
+
+      // Draw boss
+      if(bossActive && !bossDefeated) {
+          const bbob = Math.sin(time*0.003)*8;
+          ctx.drawImage(boss.sprite, boss.x-cam.x, boss.y-cam.y+bbob, boss.w, boss.h);
+      }
+
+      if(player.health > 0) requestAnimationFrame(loop);
+  }
     requestAnimationFrame(loop);
   }
 
