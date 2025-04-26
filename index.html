@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futuristic City Explorer</title>
+            <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #111;
+        }
+        #gameUI {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            font-size: 18px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            text-align: center;
+            max-width: 80%;
+        }
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            z-index: 1000;
+        }
+        #loadingBar {
+            width: 300px;
+            height: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        #loadingProgress {
+            width: 0%;
+            height: 100%;
+            background-color: #00aaff;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen">
+        <h1>Loading Futuristic City Explorer</h1>
+        <div id="loadingBar">
+            <div id="loadingProgress"></div>
+        </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameUI">Money: $<span id="moneyCounter">0</span></div>
+    <div id="instructions">
+        Controls: Arrow Keys or A/D to move | SPACE to interact with NPCs | Complete tasks to earn money
+    </div>
+
+    <script>
+        // Wait for all assets to load before starting the game
+        window.onload = async function() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const loadingProgress = document.getElementById('loadingProgress');
+            
+            // Simple function to update loading progress
+            function updateLoadingProgress(percent) {
+                loadingProgress.style.width = `${percent}%`;
+            }
+            
+            // Simulate loading process
+            updateLoadingProgress(20);
+            
+            // Game Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const moneyCounter = document.getElementById('moneyCounter');
+        
+        // Set canvas size to window size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Game state
+        let playerMoney = 0;
+        let gameTime = 0;
+        let dialogOpen = false;
+        let currentNPC = null;
+        let currentDialogText = "";
+        let currentTask = null;
+        let tasksCompleted = 0;
+
+        // Camera/viewport position
+        const camera = {
+            x: 0,
+            speed: 5
+        };
+
+        function loadImage(src) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+                img.src = src;
+            });
+        }
+        
+        
+        updateLoadingProgress(40);
+        
+        
+        const cityLayers = [
+        { img: await loadImage('1.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('2.png'), speed: 0.2, y: 0, height: canvas.height },
+        { img: await loadImage('3.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('4.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('5.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('6.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('7.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('8.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('9.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('10.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        { img: await loadImage('11.png'), speed: 0.1, y: 0, height: canvas.height }, 
+        
+        ];
+
+        updateLoadingProgress(60);
+        
+        updateLoadingProgress(80);
+        
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height * 0.75,
+            width: 50,
+            height: 80,
+            speed: 5,
+            movingLeft: false,
+            movingRight: false,
+            currentFrame: 0,
+            totalFrames: 8,
+            framesPerRow: 8,
+            animationSpeed: 5,
+            animationCounter: 0,
+            facingRight: true,
+            spritesheets: {
+                right: await loadImage('walk_right_down.png'),
+                left: await loadImage('walk_left_down.png')
+            },
+            spriteWidth: 50,
+            spriteHeight: 80
+        };
+
+        // NPCs with tasks
+        const npcs = [
+            {
+                id: 'mechanic',
+                x: 200,
+                y: canvas.height * 0.75,
+                width: 40,
+                height: 70,
+                color: '#ff6600',
+                name: 'Mechanic',
+                dialog: "Hey there! I need help fixing my hover-car. Complete this task for 50 credits?",
+                task: {
+                    description: "Fix the hover-car by pressing SPACE 5 times quickly",
+                    type: 'button-mash',
+                    goal: 5,
+                    progress: 0,
+                    reward: 50,
+                    timeLimit: 5
+                }
+            },
+            {
+                id: 'hacker',
+                x: 600,
+                y: canvas.height * 0.75,
+                width: 40,
+                height: 70,
+                color: '#00ff00',
+                name: 'Hacker',
+                dialog: "I need access to the mainframe. Can you help me decrypt it? 100 credits if you succeed.",
+                task: {
+                    description: "Decrypt the code by pressing the displayed keys",
+                    type: 'key-sequence',
+                    sequence: ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight'],
+                    currentStep: 0,
+                    reward: 100,
+                    timeLimit: 10
+                }
+            },
+            {
+                id: 'vendor',
+                x: 1000,
+                y: canvas.height * 0.75,
+                width: 40,
+                height: 70,
+                color: '#ff00ff',
+                name: 'Vendor',
+                dialog: "I need to deliver these packages. Collect 80 credits if you help me.",
+                task: {
+                    description: "Deliver packages by catching falling boxes",
+                    type: 'catch-items',
+                    itemsToCollect: 3,
+                    itemsCollected: 0,
+                    reward: 80,
+                    timeLimit: 15,
+                    items: []
+                }
+            },
+            {
+                id: 'scientist',
+                x: 1400,
+                y: canvas.height * 0.75,
+                width: 40,
+                height: 70,
+                color: '#00ffff',
+                name: 'Scientist',
+                dialog: "My experiment is unstable! Help me stabilize it for 150 credits!",
+                task: {
+                    description: "Balance the energy levels by keeping the cursor within the zone",
+                    type: 'balance-bar',
+                    balance: 50, // 0-100
+                    targetMin: 45,
+                    targetMax: 55,
+                    balanceSpeed: 2,
+                    stabilizationNeeded: 5, // seconds within target
+                    stabilizationCurrent: 0,
+                    reward: 150,
+                    timeLimit: 20
+                }
+            }
+        ];
+
+        // Keyboard input setup
+        const keys = {};
+        
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            // Task-specific key handling
+            handleTaskKeyPress(e.key);
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Mouse input for dialog and task interaction
+        window.addEventListener('click', (e) => {
+            if (dialogOpen && currentNPC) {
+                if (!currentTask) {
+                    // Accept the task
+                    currentTask = {...currentNPC.task, startTime: gameTime};
+                    currentDialogText = currentNPC.task.description;
+                } else {
+                    // Close dialog if task is complete
+                    if (isTaskComplete(currentTask)) {
+                        dialogOpen = false;
+                        currentNPC = null;
+                        currentTask = null;
+                    }
+                }
+            }
+        });
+
+        function handleTaskKeyPress(key) {
+            if (!currentTask) return;
+            
+            switch(currentTask.type) {
+                case 'button-mash':
+                    if (key === ' ' && !isTaskComplete(currentTask) && !isTaskFailed(currentTask)) {
+                        currentTask.progress++;
+                        if (currentTask.progress >= currentTask.goal) {
+                            completeTask();
+                        }
+                    }
+                    break;
+                    
+                case 'key-sequence':
+                    const expectedKey = currentTask.sequence[currentTask.currentStep];
+                    if (key === expectedKey) {
+                        currentTask.currentStep++;
+                        if (currentTask.currentStep >= currentTask.sequence.length) {
+                            completeTask();
+                        }
+                    } else {
+                        // Wrong key - reset the sequence
+                        currentTask.currentStep = 0;
+                    }
+                    break;
+            }
+        }
+
+        function completeTask() {
+            if (currentTask) {
+                playerMoney += currentTask.reward;
+                moneyCounter.textContent = playerMoney;
+                currentDialogText = `Great job! You earned ${currentTask.reward} credits.`;
+                tasksCompleted++;
+                
+                // Mark this NPC's task as completed
+                if (currentNPC) {
+                    currentNPC.taskCompleted = true;
+                }
+            }
+        }
+
+        function isTaskComplete(task) {
+            if (!task) return false;
+            
+            switch(task.type) {
+                case 'button-mash':
+                    return task.progress >= task.goal;
+                case 'key-sequence':
+                    return task.currentStep >= task.sequence.length;
+                case 'catch-items':
+                    return task.itemsCollected >= task.itemsToCollect;
+                case 'balance-bar':
+                    return task.stabilizationCurrent >= task.stabilizationNeeded;
+                default:
+                    return false;
+            }
+        }
+
+        function isTaskFailed(task) {
+            if (!task || !task.startTime || !task.timeLimit) return false;
+            return (gameTime - task.startTime) / 1000 > task.timeLimit;
+        }
+
+        function checkNPCInteraction() {
+            if (dialogOpen) return;
+            
+            for (const npc of npcs) {
+                if (npc.taskCompleted) continue; // Skip NPCs whose tasks are already completed
+                
+                // Check if player is close to this NPC
+                const dx = Math.abs((player.x + player.width/2) - (npc.x + npc.width/2 - camera.x));
+                if (dx < 50) {
+                    dialogOpen = true;
+                    currentNPC = npc;
+                    currentDialogText = npc.dialog;
+                    break;
+                }
+            }
+        }
+
+        function updatePlayer() {
+            // Move player
+            if (keys['ArrowLeft'] || keys['a']) {
+                player.movingLeft = true;
+                player.movingRight = false;
+                player.facingRight = false;
+                camera.x -= player.speed; // Move camera left
+            } else if (keys['ArrowRight'] || keys['d']) {
+                player.movingRight = true;
+                player.movingLeft = false;
+                player.facingRight = true;
+                camera.x += player.speed; // Move camera right
+            } else {
+                player.movingLeft = false;
+                player.movingRight = false;
+            }
+            
+            // Limit camera movement
+            camera.x = Math.max(0, camera.x);
+            camera.x = Math.min(2000 - canvas.width, camera.x); // Adjust value based on your game world size
+            
+            // Update animation
+            if (player.movingLeft || player.movingRight) {
+                player.animationCounter++;
+                if (player.animationCounter >= player.animationSpeed) {
+                    player.currentFrame = (player.currentFrame + 1) % player.totalFrames;
+                    player.animationCounter = 0;
+                }
+            } else {
+                player.currentFrame = 0; // Idle frame
+            }
+            
+            // Check for NPC interaction with space key
+            if (keys[' '] && !dialogOpen) {
+                checkNPCInteraction();
+            }
+        }
+
+        function updateTasks() {
+            if (!currentTask) return;
+            
+            // Different updates based on task type
+            switch(currentTask.type) {
+                case 'catch-items':
+                    // Generate falling items occasionally
+                    if (Math.random() < 0.02 && currentTask.items.length < 5) {
+                        currentTask.items.push({
+                            x: player.x + Math.random() * 200 - 100,
+                            y: 0,
+                            width: 20,
+                            height: 20,
+                            speed: 2 + Math.random() * 3
+                        });
+                    }
+                    
+                    // Update falling items
+                    for (let i = currentTask.items.length - 1; i >= 0; i--) {
+                        const item = currentTask.items[i];
+                        item.y += item.speed;
+                        
+                        // Check if player caught the item
+                        if (item.y + item.height > player.y && 
+                            item.y < player.y + player.height &&
+                            item.x + item.width > player.x && 
+                            item.x < player.x + player.width) {
+                            currentTask.itemsCollected++;
+                            currentTask.items.splice(i, 1);
+                            
+                            if (currentTask.itemsCollected >= currentTask.itemsToCollect) {
+                                completeTask();
+                            }
+                        }
+                        
+                        // Remove items that fell off-screen
+                        if (item.y > canvas.height) {
+                            currentTask.items.splice(i, 1);
+                        }
+                    }
+                    break;
+                    
+                case 'balance-bar':
+                    // Update balance based on arrow key input
+                    if (keys['ArrowLeft']) {
+                        currentTask.balance = Math.max(0, currentTask.balance - currentTask.balanceSpeed);
+                    } else if (keys['ArrowRight']) {
+                        currentTask.balance = Math.min(100, currentTask.balance + currentTask.balanceSpeed);
+                    } else {
+                        // Drift away from center when no keys are pressed
+                        if (currentTask.balance < 50) {
+                            currentTask.balance = Math.max(0, currentTask.balance - 0.5);
+                        } else if (currentTask.balance > 50) {
+                            currentTask.balance = Math.min(100, currentTask.balance + 0.5);
+                        }
+                    }
+                    
+                    // Check if balance is in the target zone
+                    if (currentTask.balance >= currentTask.targetMin && 
+                        currentTask.balance <= currentTask.targetMax) {
+                        currentTask.stabilizationCurrent += 1/60; // Assuming 60 FPS
+                        if (currentTask.stabilizationCurrent >= currentTask.stabilizationNeeded) {
+                            completeTask();
+                        }
+                    } else {
+                        // Reset progress if out of zone
+                        currentTask.stabilizationCurrent = Math.max(0, currentTask.stabilizationCurrent - 2/60);
+                    }
+                    break;
+            }
+            
+            // Check for task timeout
+            if (isTaskFailed(currentTask) && !isTaskComplete(currentTask)) {
+                currentDialogText = "You ran out of time! Try again?";
+                // Reset task progress
+                if (currentNPC) {
+                    currentTask = {...currentNPC.task, startTime: gameTime};
+                }
+            }
+        }
+
+        function drawCityLayers() {
+            // Draw each city layer with parallax effect
+            for (const layer of cityLayers) {
+                // Calculate parallax offset
+                const layerOffset = -(camera.x * layer.speed) % canvas.width;
+                
+                // Draw main layer
+                ctx.drawImage(layer.img, layerOffset, layer.y, canvas.width, layer.height);
+                
+                // Draw duplicate layer for seamless scrolling
+                if (layerOffset < 0) {
+                    ctx.drawImage(layer.img, layerOffset + canvas.width, layer.y, canvas.width, layer.height);
+                } else {
+                    ctx.drawImage(layer.img, layerOffset - canvas.width, layer.y, canvas.width, layer.height);
+                }
+            }
+        }
+
+        function drawPlayer() {
+            // Calculate the sprite position based on current frame and direction
+            const row = player.facingRight ? 0 : 1;
+            const frameX = player.currentFrame % player.framesPerRow;
+            
+            // Draw the player from the spritesheet
+            ctx.drawImage(
+                player.spritesheet,
+                frameX * player.spriteWidth,
+                row * player.spriteHeight,
+                player.spriteWidth,
+                player.spriteHeight,
+                player.x,
+                player.y,
+                player.width,
+                player.height
+            );
+        }
+
+        function drawNPCs() {
+            for (const npc of npcs) {
+                // Only draw NPCs that are within viewport
+                const screenX = npc.x - camera.x;
+                if (screenX > -npc.width && screenX < canvas.width) {
+                    ctx.fillStyle = npc.color;
+                    ctx.fillRect(screenX, npc.y, npc.width, npc.height);
+                    
+                    // Draw NPC name
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(npc.name, screenX + npc.width/2, npc.y - 10);
+                    
+                    // Indicator for completed tasks
+                    if (npc.taskCompleted) {
+                        ctx.fillStyle = '#00ff00';
+                        ctx.beginPath();
+                        ctx.arc(screenX + npc.width/2, npc.y - 20, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        function drawDialog() {
+            if (!dialogOpen || !currentNPC) return;
+            
+            // Draw dialog box
+            const dialogWidth = canvas.width * 0.6;
+            const dialogHeight = canvas.height * 0.3;
+            const dialogX = canvas.width/2 - dialogWidth/2;
+            const dialogY = canvas.height * 0.6;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(dialogX, dialogY, dialogWidth, dialogHeight);
+            
+            ctx.strokeStyle = currentNPC.color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(dialogX, dialogY, dialogWidth, dialogHeight);
+            
+            // Draw NPC name
+            ctx.fillStyle = currentNPC.color;
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(currentNPC.name, dialogX + 20, dialogY + 30);
+            
+            // Draw dialog text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px Arial';
+            
+            // Basic text wrapping
+            const maxWidth = dialogWidth - 40;
+            const words = currentDialogText.split(' ');
+            let line = '';
+            let y = dialogY + 60;
+            
+            for (const word of words) {
+                const testLine = line + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                
+                if (metrics.width > maxWidth) {
+                    ctx.fillText(line, dialogX + 20, y);
+                    line = word + ' ';
+                    y += 25;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, dialogX + 20, y);
+            
+            // Draw task progress if there's an active task
+            if (currentTask && !isTaskComplete(currentTask)) {
+                const progressY = dialogY + dialogHeight - 60;
+                
+                // Time remaining
+                const timeRemaining = Math.max(0, Math.floor(currentTask.timeLimit - (gameTime - currentTask.startTime)/1000));
+                ctx.fillStyle = timeRemaining < 3 ? '#ff3333' : '#ffffff';
+                ctx.fillText(`Time: ${timeRemaining}s`, dialogX + 20, progressY);
+                
+                // Task-specific progress display
+                switch(currentTask.type) {
+                    case 'button-mash':
+                        ctx.fillText(`Progress: ${currentTask.progress}/${currentTask.goal}`, dialogX + 20, progressY + 25);
+                        break;
+                        
+                    case 'key-sequence':
+                        let sequenceText = '';
+                        for (let i = 0; i < currentTask.sequence.length; i++) {
+                            if (i < currentTask.currentStep) {
+                                sequenceText += '✓ ';
+                            } else if (i === currentTask.currentStep) {
+                                sequenceText += currentTask.sequence[i] + ' ';
+                            } else {
+                                sequenceText += '? ';
+                            }
+                        }
+                        ctx.fillText(`Sequence: ${sequenceText}`, dialogX + 20, progressY + 25);
+                        break;
+                        
+                    case 'catch-items':
+                        ctx.fillText(`Collected: ${currentTask.itemsCollected}/${currentTask.itemsToCollect}`, dialogX + 20, progressY + 25);
+                        break;
+                        
+                    case 'balance-bar':
+                        // Draw balance bar
+                        const barWidth = dialogWidth - 40;
+                        const barHeight = 20;
+                        const barX = dialogX + 20;
+                        const barY = progressY + 25;
+                        
+                        // Background
+                        ctx.fillStyle = '#333333';
+                        ctx.fillRect(barX, barY, barWidth, barHeight);
+                        
+                        // Target zone
+                        const targetMinX = barX + barWidth * (currentTask.targetMin / 100);
+                        const targetWidth = barWidth * ((currentTask.targetMax - currentTask.targetMin) / 100);
+                        ctx.fillStyle = '#00ff00';
+                        ctx.fillRect(targetMinX, barY, targetWidth, barHeight);
+                        
+                        // Current balance marker
+                        const markerX = barX + barWidth * (currentTask.balance / 100);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.moveTo(markerX, barY - 5);
+                        ctx.lineTo(markerX + 10, barY - 15);
+                        ctx.lineTo(markerX - 10, barY - 15);
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        // Stabilization progress
+                        ctx.fillText(`Stabilizing: ${Math.floor(currentTask.stabilizationCurrent)}/${currentTask.stabilizationNeeded}s`, barX, barY + 35);
+                        break;
+                }
+            } else if (currentTask && isTaskComplete(currentTask)) {
+                // Draw completion message
+                ctx.fillStyle = '#00ff00';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText("Task Complete! Click to continue.", dialogX + 20, dialogY + dialogHeight - 40);
+            }
+        }
+
+        function drawTask() {
+            if (!currentTask || dialogOpen) return;
+            
+            // Draw tasks that need to be displayed outside of dialog
+            switch(currentTask.type) {
+                case 'catch-items':
+                    // Draw falling items
+                    ctx.fillStyle = '#ffff00';
+                    for (const item of currentTask.items) {
+                        ctx.fillRect(item.x, item.y, item.width, item.height);
+                    }
+                    break;
+            }
+        }
+
+        function update() {
+            gameTime += 16.67; // Approximate ms per frame at 60 FPS
+            
+            updatePlayer();
+            updateTasks();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawCityLayers();
+            drawNPCs();
+            drawPlayer();
+            drawTask();
+            drawDialog();
+            
+            // Draw completion message if all tasks are done
+            if (tasksCompleted >= npcs.length) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(canvas.width/2 - 200, canvas.height/2 - 100, 400, 200);
+                
+                ctx.fillStyle = '#00ff00';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText("Congratulations!", canvas.width/2, canvas.height/2 - 50);
+                ctx.fillText(`You've completed all tasks`, canvas.width/2, canvas.height/2);
+                ctx.fillText(`and earned $${playerMoney}!`, canvas.width/2, canvas.height/2 + 50);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Recreate the placeholder images for the new canvas size
+            for (let i = 0; i < cityLayers.length; i++) {
+                const layer = cityLayers[i];
+                const height = canvas.height - (canvas.height * (0.1 + i * 0.1));
+                layer.y = canvas.height * (0.1 + i * 0.1);
+                layer.height = height;
+                
+                // Recreate placeholder images with new dimensions
+                // You would skip this if using real images
+                layer.img = createPlaceholderImage(
+                    ["#000033", "#000066", "#000099", "#0000cc", "#0000ff", "#3333ff", "#6666ff", "#9999ff"][i],
+                    canvas.width,
+                    height
+                );
+            }
+            
+            // Update player position
+            player.y = canvas.height * 0.75;
+            
+            // Update NPCs position
+            for (const npc of npcs) {
+                npc.y = canvas.height * 0.75;
+            }
+        });
+
+        // Complete loading
+        updateLoadingProgress(100);
+        
+        // Hide loading screen after a short delay
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            // Start the game
+            gameLoop();
+        }, 500);
+        
+        }; // Close the window.onload function
+    </script>
+</body>
+</html>
